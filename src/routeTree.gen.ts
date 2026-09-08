@@ -16,6 +16,7 @@ import { Route as CommentCaMarcheRouteImport } from './routes/comment-ca-marche'
 import { Route as InscriptionRouteImport } from './routes/inscription'
 import { Route as MaReservationRouteImport } from './routes/ma-reservation'
 import { Route as AuthenticatedGestionRouteImport } from './routes/_authenticated/gestion'
+import { Route as AuthenticatedMonEspaceRouteImport } from './routes/_authenticated/mon-espace'
 import { Route as VillasIndexRouteImport } from './routes/villas.index'
 import { Route as VillasVillaIdRouteImport } from './routes/villas.$villaId'
 
@@ -53,6 +54,11 @@ const AuthenticatedGestionRoute = AuthenticatedGestionRouteImport.update({
   path: '/gestion',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMonEspaceRoute = AuthenticatedMonEspaceRouteImport.update({
+  id: '/mon-espace',
+  path: '/mon-espace',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const VillasIndexRoute = VillasIndexRouteImport.update({
   id: '/villas/',
   path: '/villas/',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/inscription': typeof InscriptionRoute
   '/ma-reservation': typeof MaReservationRoute
   '/gestion': typeof AuthenticatedGestionRoute
+  '/mon-espace': typeof AuthenticatedMonEspaceRoute
   '/villas/$villaId': typeof VillasVillaIdRoute
   '/villas/': typeof VillasIndexRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/inscription': typeof InscriptionRoute
   '/ma-reservation': typeof MaReservationRoute
   '/gestion': typeof AuthenticatedGestionRoute
+  '/mon-espace': typeof AuthenticatedMonEspaceRoute
   '/villas/$villaId': typeof VillasVillaIdRoute
   '/villas': typeof VillasIndexRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/inscription': typeof InscriptionRoute
   '/ma-reservation': typeof MaReservationRoute
   '/_authenticated/gestion': typeof AuthenticatedGestionRoute
+  '/_authenticated/mon-espace': typeof AuthenticatedMonEspaceRoute
   '/villas/$villaId': typeof VillasVillaIdRoute
   '/villas/': typeof VillasIndexRoute
 }
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/inscription'
     | '/ma-reservation'
     | '/gestion'
+    | '/mon-espace'
     | '/villas/$villaId'
     | '/villas/'
   fileRoutesByTo: FileRoutesByTo
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/inscription'
     | '/ma-reservation'
     | '/gestion'
+    | '/mon-espace'
     | '/villas/$villaId'
     | '/villas'
   id:
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/inscription'
     | '/ma-reservation'
     | '/_authenticated/gestion'
+    | '/_authenticated/mon-espace'
     | '/villas/$villaId'
     | '/villas/'
   fileRoutesById: FileRoutesById
@@ -192,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mon-espace': {
+      id: '/_authenticated/mon-espace'
+      path: '/mon-espace'
+      fullPath: '/mon-espace'
+      preLoaderRoute: typeof AuthenticatedMonEspaceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/villas/': {
       id: '/villas/'
       path: '/villas'
@@ -211,10 +230,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGestionRoute: typeof AuthenticatedGestionRoute
+  AuthenticatedMonEspaceRoute: typeof AuthenticatedMonEspaceRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGestionRoute: AuthenticatedGestionRoute,
+  AuthenticatedMonEspaceRoute: AuthenticatedMonEspaceRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
