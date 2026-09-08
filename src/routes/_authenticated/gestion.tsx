@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -17,6 +17,16 @@ import {
 } from "@/lib/villas";
 
 export const Route = createFileRoute("/_authenticated/gestion")({
+  beforeLoad: async () => {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("role", "admin");
+    if (error || !data || data.length === 0) {
+      toast.error("Accès non autorisé");
+      throw redirect({ to: "/mon-espace" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Gestion — Antilla Stay" },

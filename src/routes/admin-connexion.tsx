@@ -29,8 +29,6 @@ export const Route = createFileRoute("/admin-connexion")({
 
 function AdminLoginPage() {
   const navigate = useNavigate();
-  const claim = useServerFn(claimAdminRole);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,20 +37,13 @@ function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/admin-connexion` },
-        });
-        if (error) throw error;
-      }
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      try {
-        await claim({ data: undefined });
-      } catch {
-        /* un administrateur existe déjà */
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("role", "admin");
+      if (!roles || roles.length === 0) {
+        toast.error("Accès non autorisé");
+        navigate({ to: "/mon-espace" });
+        return;
       }
       toast.success("Bienvenue !");
       navigate({ to: "/gestion" });
@@ -88,7 +79,7 @@ function AdminLoginPage() {
             required
             type="password"
             minLength={6}
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            autoComplete="current-password"
             placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -99,17 +90,11 @@ function AdminLoginPage() {
             disabled={loading}
             className="gradient-lagoon w-full rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft disabled:opacity-50"
           >
-            {loading ? "Patientez..." : mode === "signin" ? "Se connecter" : "Créer mon compte"}
+            {loading ? "Patientez..." : "Se connecter"}
           </button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            {mode === "signin"
-              ? "Première connexion ? Créer le compte gestionnaire"
-              : "J'ai déjà un compte, me connecter"}
-          </button>
+          <p className="text-center text-xs text-muted-foreground">
+            Accès réservé au gestionnaire. Les clients passent par leur espace personnel.
+          </p>
         </form>
       </div>
     </SiteLayout>

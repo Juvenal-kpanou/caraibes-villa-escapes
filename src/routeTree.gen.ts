@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminConnexionRouteImport } from './routes/admin-connexion'
 import { Route as CommentCaMarcheRouteImport } from './routes/comment-ca-marche'
+import { Route as InscriptionRouteImport } from './routes/inscription'
 import { Route as MaReservationRouteImport } from './routes/ma-reservation'
 import { Route as AuthenticatedGestionRouteImport } from './routes/_authenticated/gestion'
+import { Route as AuthenticatedMonEspaceRouteImport } from './routes/_authenticated/mon-espace'
 import { Route as VillasIndexRouteImport } from './routes/villas.index'
 import { Route as VillasVillaIdRouteImport } from './routes/villas.$villaId'
 
@@ -37,6 +39,11 @@ const CommentCaMarcheRoute = CommentCaMarcheRouteImport.update({
   path: '/comment-ca-marche',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InscriptionRoute = InscriptionRouteImport.update({
+  id: '/inscription',
+  path: '/inscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MaReservationRoute = MaReservationRouteImport.update({
   id: '/ma-reservation',
   path: '/ma-reservation',
@@ -45,6 +52,11 @@ const MaReservationRoute = MaReservationRouteImport.update({
 const AuthenticatedGestionRoute = AuthenticatedGestionRouteImport.update({
   id: '/gestion',
   path: '/gestion',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMonEspaceRoute = AuthenticatedMonEspaceRouteImport.update({
+  id: '/mon-espace',
+  path: '/mon-espace',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const VillasIndexRoute = VillasIndexRouteImport.update({
@@ -62,8 +74,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin-connexion': typeof AdminConnexionRoute
   '/comment-ca-marche': typeof CommentCaMarcheRoute
+  '/inscription': typeof InscriptionRoute
   '/ma-reservation': typeof MaReservationRoute
   '/gestion': typeof AuthenticatedGestionRoute
+  '/mon-espace': typeof AuthenticatedMonEspaceRoute
   '/villas/$villaId': typeof VillasVillaIdRoute
   '/villas/': typeof VillasIndexRoute
 }
@@ -71,8 +85,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin-connexion': typeof AdminConnexionRoute
   '/comment-ca-marche': typeof CommentCaMarcheRoute
+  '/inscription': typeof InscriptionRoute
   '/ma-reservation': typeof MaReservationRoute
   '/gestion': typeof AuthenticatedGestionRoute
+  '/mon-espace': typeof AuthenticatedMonEspaceRoute
   '/villas/$villaId': typeof VillasVillaIdRoute
   '/villas': typeof VillasIndexRoute
 }
@@ -82,8 +98,10 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin-connexion': typeof AdminConnexionRoute
   '/comment-ca-marche': typeof CommentCaMarcheRoute
+  '/inscription': typeof InscriptionRoute
   '/ma-reservation': typeof MaReservationRoute
   '/_authenticated/gestion': typeof AuthenticatedGestionRoute
+  '/_authenticated/mon-espace': typeof AuthenticatedMonEspaceRoute
   '/villas/$villaId': typeof VillasVillaIdRoute
   '/villas/': typeof VillasIndexRoute
 }
@@ -93,8 +111,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin-connexion'
     | '/comment-ca-marche'
+    | '/inscription'
     | '/ma-reservation'
     | '/gestion'
+    | '/mon-espace'
     | '/villas/$villaId'
     | '/villas/'
   fileRoutesByTo: FileRoutesByTo
@@ -102,8 +122,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin-connexion'
     | '/comment-ca-marche'
+    | '/inscription'
     | '/ma-reservation'
     | '/gestion'
+    | '/mon-espace'
     | '/villas/$villaId'
     | '/villas'
   id:
@@ -112,8 +134,10 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/admin-connexion'
     | '/comment-ca-marche'
+    | '/inscription'
     | '/ma-reservation'
     | '/_authenticated/gestion'
+    | '/_authenticated/mon-espace'
     | '/villas/$villaId'
     | '/villas/'
   fileRoutesById: FileRoutesById
@@ -123,6 +147,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminConnexionRoute: typeof AdminConnexionRoute
   CommentCaMarcheRoute: typeof CommentCaMarcheRoute
+  InscriptionRoute: typeof InscriptionRoute
   MaReservationRoute: typeof MaReservationRoute
   VillasVillaIdRoute: typeof VillasVillaIdRoute
   VillasIndexRoute: typeof VillasIndexRoute
@@ -158,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommentCaMarcheRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inscription': {
+      id: '/inscription'
+      path: '/inscription'
+      fullPath: '/inscription'
+      preLoaderRoute: typeof InscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ma-reservation': {
       id: '/ma-reservation'
       path: '/ma-reservation'
@@ -170,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/gestion'
       fullPath: '/gestion'
       preLoaderRoute: typeof AuthenticatedGestionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mon-espace': {
+      id: '/_authenticated/mon-espace'
+      path: '/mon-espace'
+      fullPath: '/mon-espace'
+      preLoaderRoute: typeof AuthenticatedMonEspaceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/villas/': {
@@ -191,10 +230,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGestionRoute: typeof AuthenticatedGestionRoute
+  AuthenticatedMonEspaceRoute: typeof AuthenticatedMonEspaceRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGestionRoute: AuthenticatedGestionRoute,
+  AuthenticatedMonEspaceRoute: AuthenticatedMonEspaceRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -205,6 +246,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminConnexionRoute: AdminConnexionRoute,
   CommentCaMarcheRoute: CommentCaMarcheRoute,
+  InscriptionRoute: InscriptionRoute,
   MaReservationRoute: MaReservationRoute,
   VillasVillaIdRoute: VillasVillaIdRoute,
   VillasIndexRoute: VillasIndexRoute,
