@@ -79,7 +79,7 @@ function AdminLoginPage() {
             required
             type="password"
             minLength={6}
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            autoComplete="current-password"
             placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -90,17 +90,11 @@ function AdminLoginPage() {
             disabled={loading}
             className="gradient-lagoon w-full rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft disabled:opacity-50"
           >
-            {loading ? "Patientez..." : mode === "signin" ? "Se connecter" : "Créer mon compte"}
+            {loading ? "Patientez..." : "Se connecter"}
           </button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            {mode === "signin"
-              ? "Première connexion ? Créer le compte gestionnaire"
-              : "J'ai déjà un compte, me connecter"}
-          </button>
+          <p className="text-center text-xs text-muted-foreground">
+            Accès réservé au gestionnaire. Les clients passent par leur espace personnel.
+          </p>
         </form>
       </div>
     </SiteLayout>
