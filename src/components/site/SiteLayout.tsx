@@ -62,6 +62,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               WhatsApp
             </a>
             <Link
+              to="/mon-espace"
+              className="rounded-full px-3.5 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary/70"
+            >
+              Mon espace
+            </Link>
+            <Link
               to="/villas"
               className="gradient-lagoon ml-2 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lift"
             >
