@@ -41,21 +41,29 @@ const STATUS_STYLES: Record<string, string> = {
 
 function MyReservationPage() {
   const [reference, setReference] = useState("");
+  const [email, setEmail] = useState("");
   const lookup = useServerFn(getReservationByReference);
   const refund = useServerFn(requestRefund);
   const [showCancel, setShowCancel] = useState(false);
   const [bankForm, setBankForm] = useState({ holder: "", iban: "", bic: "" });
 
   const mutation = useMutation({
-    mutationFn: (ref: string) => lookup({ data: { reference: ref } }),
+    mutationFn: (payload: { reference: string; email: string }) => lookup({ data: payload }),
     onSuccess: () => setShowCancel(false),
   });
 
   const refundMutation = useMutation({
-    mutationFn: (payload: { reference: string; holder: string; iban: string; bic: string }) =>
-      refund({ data: payload }),
-    onSuccess: () => mutation.mutate(reference.trim().toUpperCase()),
+    mutationFn: (payload: {
+      reference: string;
+      email: string;
+      holder: string;
+      iban: string;
+      bic: string;
+    }) => refund({ data: payload }),
+    onSuccess: () =>
+      mutation.mutate({ reference: reference.trim().toUpperCase(), email: email.trim() }),
   });
+
 
 
   const result = mutation.data;
