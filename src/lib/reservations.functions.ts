@@ -125,14 +125,20 @@ export const createReservation = createServerFn({ method: "POST" })
     return { reference, nights, total, dueNow, reservation: created };
   });
 
-/** Consultation d'un dossier par référence (la référence fait office de clé d'accès). */
+/** Consultation d'un dossier : référence + e-mail du dossier (double vérification). */
 export const getReservationByReference = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
-    z.object({ reference: z.string().trim().min(4).max(20) }).parse(data),
+    z
+      .object({
+        reference: z.string().trim().min(4).max(20),
+        email: z.string().trim().email().max(255),
+      })
+      .parse(data),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const reference = data.reference.toUpperCase();
+    const email = data.email.toLowerCase();
 
     const { data: reservation, error } = await supabaseAdmin
       .from("reservations")
@@ -141,6 +147,9 @@ export const getReservationByReference = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!reservation) return { reservation: null, bank: null };
+    if (String(reservation.guest_email ?? "").trim().toLowerCase() !== email) {
+      return { reservation: null, bank: null };
+    }
 
     const { data: bank } = await supabaseAdmin
       .from("bank_settings")
@@ -157,6 +166,7 @@ export const requestRefund = createServerFn({ method: "POST" })
     z
       .object({
         reference: z.string().trim().min(4).max(20),
+        email: z.string().trim().email().max(255),
         holder: z.string().trim().min(2).max(120),
         iban: z.string().trim().min(10).max(40),
         bic: z.string().trim().min(6).max(15),
@@ -166,14 +176,17 @@ export const requestRefund = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const reference = data.reference.toUpperCase();
+    const email = data.email.trim().toLowerCase();
 
     const { data: existing, error } = await supabaseAdmin
       .from("reservations")
-      .select("id, status")
+      .select("id, status, guest_email")
       .eq("reference", reference)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!existing) throw new Error("Dossier introuvable.");
+    if (!existing || String(existing.guest_email ?? "").trim().toLowerCase() !== email) {
+      throw new Error("Dossier introuvable.");
+    }
     if (["refund_pending", "refunded"].includes(existing.status)) {
       throw new Error("Une demande de remboursement est déjà enregistrée.");
     }
@@ -191,6 +204,7 @@ export const requestRefund = createServerFn({ method: "POST" })
     if (updateError) throw new Error(updateError.message);
     return { ok: true };
   });
+
 
 /** Admin : changer le statut d'une réservation. */
 export const updateReservationStatus = createServerFn({ method: "POST" })
