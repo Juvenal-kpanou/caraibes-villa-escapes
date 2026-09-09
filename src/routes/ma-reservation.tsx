@@ -320,10 +320,12 @@ function MyReservationPage() {
                       e.preventDefault();
                       refundMutation.mutate({
                         reference: reservation.reference,
+                        email: email.trim(),
                         holder: bankForm.holder,
                         iban: bankForm.iban,
                         bic: bankForm.bic,
                       });
+
                     }}
                   >
                     <input
