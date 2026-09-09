@@ -26,7 +26,7 @@ export const listMyReservations = createServerFn({ method: "POST" })
       .select(
         "id, reference, guests, check_in, check_out, nights, total_amount, amount_paid, deposit, status, created_at, villas(name, location)",
       )
-      .ilike("guest_email", email)
+      .eq("guest_email", email)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return { reservations: data ?? [] };
