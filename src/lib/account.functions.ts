@@ -18,7 +18,8 @@ export const getMyRole = createServerFn({ method: "POST" })
 export const listMyReservations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const email = String((context.claims as { email?: string }).email ?? "").toLowerCase();
+    const raw = String((context.claims as { email?: string }).email ?? "").trim();
+    const email = raw.toLowerCase();
     if (!email) return { reservations: [] };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
@@ -26,7 +27,7 @@ export const listMyReservations = createServerFn({ method: "POST" })
       .select(
         "id, reference, guests, check_in, check_out, nights, total_amount, amount_paid, deposit, status, created_at, villas(name, location)",
       )
-      .ilike("guest_email", email)
+      .in("guest_email", Array.from(new Set([raw, email])))
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return { reservations: data ?? [] };

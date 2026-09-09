@@ -125,7 +125,6 @@ function ClientSpacePage() {
                   </span>
                   <Link
                     to="/ma-reservation"
-                    search={{ ref: r.reference } as never}
                     className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-secondary/70"
                   >
                     Justificatif & annulation

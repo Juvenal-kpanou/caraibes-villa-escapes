@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { claimAdminRole } from "@/lib/reservations.functions";
 
 export const Route = createFileRoute("/admin-connexion")({
   head: () => ({
