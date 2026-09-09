@@ -94,8 +94,9 @@ function MyReservationPage() {
             <p className="text-xs uppercase tracking-[0.24em] text-primary">Suivi de dossier</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl">Ma réservation</h1>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Saisissez la référence reçue lors de votre demande (format KRK-XXXXXX) pour retrouver
-              votre séjour, le montant à régler et nos coordonnées bancaires.
+              Saisissez la référence reçue lors de votre demande (format KRK-XXXXXX) et l'adresse
+              e-mail du dossier pour retrouver votre séjour, le montant à régler et nos coordonnées
+              bancaires.
             </p>
           </Reveal>
         </div>
@@ -107,22 +108,37 @@ function MyReservationPage() {
             onSubmit={(e) => {
               e.preventDefault();
               const ref = reference.trim().toUpperCase();
-              if (ref.length >= 4) mutation.mutate(ref);
+              const mail = email.trim();
+              if (ref.length >= 4 && mail.includes("@")) mutation.mutate({ reference: ref, email: mail });
             }}
-            className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 shadow-soft sm:flex-row"
+            className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 shadow-soft"
           >
-            <label className="flex-1">
-              <span className="sr-only">Référence de réservation</span>
-              <input
-                value={reference}
-                onChange={(e) => setReference(e.target.value.toUpperCase())}
-                placeholder="KRK-XXXXXX"
-                className="w-full rounded-full border border-border bg-background px-5 py-3 tracking-[0.12em] outline-none transition focus:border-primary"
-              />
-            </label>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="flex-1">
+                <span className="sr-only">Référence de réservation</span>
+                <input
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value.toUpperCase())}
+                  placeholder="KRK-XXXXXX"
+                  className="w-full rounded-full border border-border bg-background px-5 py-3 tracking-[0.12em] outline-none transition focus:border-primary"
+                />
+              </label>
+              <label className="flex-1">
+                <span className="sr-only">E-mail du dossier</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  className="w-full rounded-full border border-border bg-background px-5 py-3 outline-none transition focus:border-primary"
+                />
+              </label>
+            </div>
             <button
               type="submit"
-              disabled={mutation.isPending || reference.trim().length < 4}
+              disabled={
+                mutation.isPending || reference.trim().length < 4 || !email.trim().includes("@")
+              }
               className="rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-soft transition-all duration-300 hover:brightness-110 disabled:opacity-60"
             >
               {mutation.isPending ? (
@@ -139,6 +155,7 @@ function MyReservationPage() {
             </button>
           </form>
         </Reveal>
+
 
         {mutation.isError && (
           <p className="mt-5 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">
