@@ -97,6 +97,20 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <Link
+              to="/mon-espace"
+              onClick={() => setOpen(false)}
+              className="block rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-secondary/70"
+            >
+              Mon espace
+            </Link>
+            <Link
+              to="/inscription"
+              onClick={() => setOpen(false)}
+              className="block rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-secondary/70"
+            >
+              Créer un compte
+            </Link>
             <a
               href={WHATSAPP_LINK}
               target="_blank"
