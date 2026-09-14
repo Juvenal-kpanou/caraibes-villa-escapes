@@ -91,7 +91,7 @@ function Index() {
           <Reveal delay={80}>
             <h1 className="mt-6 font-display text-4xl leading-[1.1] text-white drop-shadow-md md:text-6xl lg:text-7xl">
               Des villas de charme pour des vacances{" "}
-              <span className="text-emerald-300 underline decoration-emerald-400/50 underline-offset-8">authentiques</span> en Guadeloupe.
+              <span className="text-emerald-300">authentiques</span> en Guadeloupe.
             </h1>
           </Reveal>
           <Reveal delay={160}>
