@@ -16,7 +16,7 @@ export const Route = createFileRoute("/ma-reservation")({
       {
         name: "description",
         content:
-          "Saisissez votre référence KRK-XXXXXX pour consulter le statut de votre séjour, le montant à régler et nos coordonnées bancaires.",
+          "Saisissez votre référence ANT-XXXXXX pour consulter le statut de votre séjour, le montant à régler et nos coordonnées bancaires.",
       },
       { property: "og:title", content: "Suivre ma réservation — Antilla Stay" },
       {
@@ -31,12 +31,14 @@ export const Route = createFileRoute("/ma-reservation")({
 });
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-sand/60 text-foreground",
-  confirmed: "bg-palm/15 text-palm",
-  cancelled: "bg-destructive/10 text-destructive",
-  refund_pending: "bg-sand/60 text-foreground",
-  refunded: "bg-palm/15 text-palm",
-  refund_rejected: "bg-destructive/10 text-destructive",
+  pending: "bg-amber-100 text-amber-900 border border-amber-300 font-semibold",
+  confirmed: "bg-palm/15 text-palm font-semibold",
+  unfulfilled: "bg-destructive/10 text-destructive font-semibold",
+  expired: "bg-muted text-muted-foreground font-semibold",
+  cancelled: "bg-destructive/10 text-destructive font-semibold",
+  refund_pending: "bg-sand/60 text-foreground font-semibold",
+  refunded: "bg-palm/15 text-palm font-semibold",
+  refund_rejected: "bg-destructive/10 text-destructive font-semibold",
 };
 
 function MyReservationPage() {
@@ -91,12 +93,11 @@ function MyReservationPage() {
       <section className="bg-gradient-to-b from-secondary/40 to-background">
         <div className="mx-auto w-full max-w-3xl px-4 py-14 text-center md:py-20">
           <Reveal>
-            <p className="text-xs uppercase tracking-[0.24em] text-primary">Suivi de dossier</p>
-            <h1 className="mt-2 font-display text-4xl md:text-5xl">Ma réservation</h1>
+            <p className="text-xs uppercase tracking-[0.24em] text-primary">Suivi de dossier (Sans compte)</p>
+            <h1 className="mt-2 font-display text-4xl md:text-5xl">Suivre ma réservation</h1>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Saisissez la référence reçue lors de votre demande (format KRK-XXXXXX) et l'adresse
-              e-mail du dossier pour retrouver votre séjour, le montant à régler et nos coordonnées
-              bancaires.
+              Saisissez la référence reçue lors de votre demande (format ANT-XXXXXX) et l'adresse
+              e-mail renseignée lors de votre réservation pour retrouver votre dossier.
             </p>
           </Reveal>
         </div>
@@ -119,7 +120,7 @@ function MyReservationPage() {
                 <input
                   value={reference}
                   onChange={(e) => setReference(e.target.value.toUpperCase())}
-                  placeholder="KRK-XXXXXX"
+                  placeholder="ANT-XXXXXX"
                   className="w-full rounded-full border border-border bg-background px-5 py-3 tracking-[0.12em] outline-none transition focus:border-primary"
                 />
               </label>
@@ -365,6 +366,45 @@ function MyReservationPage() {
                     )}
                   </form>
                 )}
+              </div>
+            )}
+
+            {reservation.status === "pending" && (
+              <div className="rounded-3xl border border-amber-300 bg-amber-500/10 p-6 text-sm text-amber-900">
+                <p className="font-semibold text-base">
+                  <i className="fa-solid fa-clock mr-2 text-amber-600" aria-hidden="true" />
+                  Demande enregistrée — Vos dates sont bloquées temporairement (72h)
+                </p>
+                <p className="mt-2 text-amber-800">
+                  Vos dates sont réservées et grisées dans le calendrier public pour éviter toute réservation simultanée. 
+                  Pour valider définitivement votre séjour, merci d'effectuer le virement bancaire ci-dessus. 
+                  Sans validation ou virement sous 72h, les dates seront automatiquement libérées.
+                </p>
+              </div>
+            )}
+
+            {reservation.status === "unfulfilled" && (
+              <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
+                <p className="font-semibold text-base">
+                  <i className="fa-solid fa-circle-xmark mr-2" aria-hidden="true" />
+                  Demande non aboutie
+                </p>
+                <p className="mt-2">
+                  Votre demande de réservation n'a pas pu être finalisée. Les dates du séjour ont été libérées dans le calendrier public.
+                  Si vous souhaitez effectuer un nouveau séjour, n'hésitez pas à choisir de nouvelles dates.
+                </p>
+              </div>
+            )}
+
+            {reservation.status === "expired" && (
+              <div className="rounded-3xl border border-border bg-muted/70 p-6 text-sm text-muted-foreground">
+                <p className="font-semibold text-base text-foreground">
+                  <i className="fa-solid fa-hourglass-end mr-2 text-primary" aria-hidden="true" />
+                  Demande expirée
+                </p>
+                <p className="mt-2">
+                  Le délai de 72h pour la validation du virement est dépassé. Les dates du séjour ont été automatiquement libérées dans le calendrier public.
+                </p>
               </div>
             )}
 

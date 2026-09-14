@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { computeCommitment, computeDueNow, computeTotal, requiresDeposit } from "@/lib/site";
+import { fetchUnavailableDatesForVilla } from "@/lib/villas";
 
 const paymentOptionSchema = z.enum([
   "full_with_deposit",
@@ -68,14 +69,10 @@ export const createReservation = createServerFn({ method: "POST" })
     const nights = eachDate(data.checkIn, data.checkOut).length;
     if (nights < 1) throw new Error("La date de départ doit être après la date d'arrivée.");
 
-    const { data: unavailable, error: unavailableError } = await supabaseAdmin.rpc(
-      "get_unavailable_dates",
-      { _villa_id: data.villaId },
-    );
-    if (unavailableError) throw new Error(unavailableError.message);
-    const taken = new Set(((unavailable ?? []) as string[]).map((d) => String(d).slice(0, 10)));
+    const unavailable = await fetchUnavailableDatesForVilla(supabaseAdmin, data.villaId);
+    const taken = new Set(unavailable);
     if (eachDate(data.checkIn, data.checkOut).some((d) => taken.has(d))) {
-      throw new Error("Certaines dates viennent d'être réservées. Merci de choisir d'autres dates.");
+      throw new Error("Certaines dates viennent d'être réservées ou ne sont plus disponibles. Merci de choisir d'autres dates.");
     }
 
     const pricePerPerson = Number((villa as { price_per_person?: number }).price_per_person ?? 0);
@@ -83,7 +80,8 @@ export const createReservation = createServerFn({ method: "POST" })
       throw new Error("Le tarif de cette villa n'est pas encore renseigné.");
     }
     const deposit = Number(villa.deposit);
-    const total = computeTotal(pricePerPerson, data.guests, nights);
+    const threshold = (villa as { pricing_threshold?: number | null }).pricing_threshold;
+    const total = computeTotal(pricePerPerson, data.guests, nights, threshold);
     const dueNow = computeDueNow(data.paymentOption, total, deposit);
 
     let reference = makeReference();
@@ -125,6 +123,20 @@ export const createReservation = createServerFn({ method: "POST" })
     return { reference, nights, total, dueNow, reservation: created };
   });
 
+/** Expire automatiquement les demandes en attente vieilles de plus de 72h */
+export async function expireStaleReservations(client: any) {
+  try {
+    const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+    await client
+      .from("reservations")
+      .update({ status: "expired" })
+      .eq("status", "pending")
+      .lt("created_at", cutoff);
+  } catch (e) {
+    console.error("Erreur lors de l'expiration automatique:", e);
+  }
+}
+
 /** Consultation d'un dossier : référence + e-mail du dossier (double vérification). */
 export const getReservationByReference = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
@@ -137,6 +149,7 @@ export const getReservationByReference = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await expireStaleReservations(supabaseAdmin);
     const reference = data.reference.toUpperCase();
     const email = data.email.toLowerCase();
 
@@ -216,6 +229,8 @@ export const updateReservationStatus = createServerFn({ method: "POST" })
         status: z.enum([
           "pending",
           "confirmed",
+          "unfulfilled",
+          "expired",
           "cancelled",
           "refund_pending",
           "refunded",

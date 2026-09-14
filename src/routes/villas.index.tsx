@@ -5,6 +5,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { VillaCard } from "@/components/site/VillaCard";
 import { formatEUR, villasQuery } from "@/lib/villas";
+import { computeVillaNightlyPrice } from "@/lib/site";
 
 export const Route = createFileRoute("/villas/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(villasQuery()),
@@ -55,13 +56,13 @@ function VillasPage() {
       );
     });
     return [...list].sort((a, b) => {
-      if (sort === "price-asc") return a.price_per_night - b.price_per_night;
-      if (sort === "price-desc") return b.price_per_night - a.price_per_night;
+      if (sort === "price-asc") return computeVillaNightlyPrice(a) - computeVillaNightlyPrice(b);
+      if (sort === "price-desc") return computeVillaNightlyPrice(b) - computeVillaNightlyPrice(a);
       return b.capacity - a.capacity;
     });
   }, [villas, search, location, minGuests, sort]);
 
-  const minPrice = villas.length ? Math.min(...villas.map((v) => v.price_per_night)) : 0;
+  const minPrice = villas.length ? Math.min(...villas.map((v) => computeVillaNightlyPrice(v))) : 0;
 
   return (
     <SiteLayout>

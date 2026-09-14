@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { VillaPhotoUploader } from "@/components/site/VillaPhotoUploader";
 import { AvailabilityCalendar } from "@/components/site/AvailabilityCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { updateReservationStatus } from "@/lib/reservations.functions";
@@ -15,6 +16,7 @@ import {
   villasQuery,
   type Villa,
 } from "@/lib/villas";
+import { computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/gestion")({
   beforeLoad: async () => {
@@ -23,8 +25,8 @@ export const Route = createFileRoute("/_authenticated/gestion")({
       .select("role")
       .eq("role", "admin");
     if (error || !data || data.length === 0) {
-      toast.error("Accès non autorisé");
-      throw redirect({ to: "/mon-espace" });
+      toast.error("Accès réservé au gestionnaire");
+      throw redirect({ to: "/admin-connexion" });
     }
   },
   head: () => ({
@@ -58,10 +60,11 @@ const EMPTY_VILLA = {
   has_pool: false,
   parties_allowed: false,
   amenities: "",
-  price_per_night: 250,
+  price_per_night: 35,
   price_per_person: 35,
   cleaning_fee: 80,
   deposit: 500,
+  pricing_threshold: 0,
   is_active: true,
 };
 
@@ -144,11 +147,21 @@ function ReservationsPanel() {
     },
   });
 
-  async function setStatus(id: string, status: "pending" | "confirmed" | "cancelled") {
+  async function setStatus(
+    id: string,
+    status: "pending" | "confirmed" | "unfulfilled" | "expired" | "cancelled",
+  ) {
     try {
       await updateStatus({ data: { id, status } });
-      toast.success("Réservation mise à jour");
+      if (status === "confirmed") {
+        toast.success("Virement confirmé ! La réservation est maintenant enregistrée.");
+      } else if (status === "unfulfilled") {
+        toast.success("Dates libérées. La demande a été marquée comme 'Demande non aboutie'.");
+      } else {
+        toast.success("Statut mis à jour");
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["unavailable"] });
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -162,48 +175,87 @@ function ReservationsPanel() {
     <div className="space-y-4">
       {data.map((row: Record<string, any>) => {
         const r = row as any;
+        const createdAtTime = new Date(r.created_at).getTime();
+        const hoursElapsed = (Date.now() - createdAtTime) / (3600 * 1000);
+        const hoursRemaining = Math.max(0, Math.ceil(72 - hoursElapsed));
+        const isPendingExpired = r.status === "pending" && hoursRemaining <= 0;
+
         return (
-        <article
-          key={r.id}
-          className="rounded-3xl border border-border bg-card p-5 shadow-soft md:flex md:items-center md:justify-between md:gap-6"
-        >
-          <div className="space-y-1 text-sm">
-            <p className="font-display text-lg">
-              {r.reference} · {r.villas?.name ?? "Villa supprimée"}
-            </p>
-            <p className="text-muted-foreground">
-              {r.guest_name} · {r.guest_email} · {r.guest_phone}
-            </p>
-            <p className="text-muted-foreground">
-              Du {formatDateFr(r.check_in)} au {formatDateFr(r.check_out)} · {r.nights} nuits ·{" "}
-              {r.guests} voyageurs
-            </p>
-            <p className="font-semibold">
-              Total {formatEUR(Number(r.total_amount))} · caution {formatEUR(Number(r.deposit))}
-            </p>
-          </div>
-          <div className="mt-4 flex flex-col items-start gap-2 md:mt-0 md:items-end">
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs">
-              {STATUS_LABELS[r.status] ?? r.status}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setStatus(r.id, "confirmed")}
-                className="rounded-full bg-palm/10 px-4 py-2 text-xs font-semibold text-palm"
-              >
-                Confirmer
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatus(r.id, "cancelled")}
-                className="rounded-full bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive"
-              >
-                Annuler
-              </button>
+          <article
+            key={r.id}
+            className="rounded-3xl border border-border bg-card p-5 shadow-soft md:flex md:items-center md:justify-between md:gap-6"
+          >
+            <div className="space-y-1 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-display text-lg">
+                  {r.reference} · {r.villas?.name ?? "Villa supprimée"}
+                </p>
+                {r.status === "pending" && (
+                  <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                    {isPendingExpired
+                      ? "⏱️ Délai de 72h dépassé"
+                      : `⏱️ Expire dans ~${hoursRemaining}h`}
+                  </span>
+                )}
+              </div>
+              <p className="text-muted-foreground">
+                {r.guest_name} · {r.guest_email} · {r.guest_phone}
+              </p>
+              <p className="text-muted-foreground">
+                Du {formatDateFr(r.check_in)} au {formatDateFr(r.check_out)} · {r.nights} nuits ·{" "}
+                {r.guests} voyageurs
+              </p>
+              <p className="font-semibold">
+                Total {formatEUR(Number(r.total_amount))} · caution {formatEUR(Number(r.deposit))}
+              </p>
             </div>
-          </div>
-        </article>
+            <div className="mt-4 flex flex-col items-start gap-2 md:mt-0 md:items-end">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  r.status === "pending"
+                    ? "bg-amber-100 text-amber-900 border border-amber-300"
+                    : r.status === "confirmed"
+                      ? "bg-palm/15 text-palm"
+                      : r.status === "unfulfilled" || r.status === "cancelled"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-secondary text-secondary-foreground"
+                }`}
+              >
+                {STATUS_LABELS[r.status] ?? r.status}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {r.status === "pending" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setStatus(r.id, "confirmed")}
+                      className="rounded-full bg-palm/15 px-4 py-2 text-xs font-semibold text-palm transition-colors hover:bg-palm hover:text-primary-foreground"
+                    >
+                      <i className="fa-solid fa-check mr-1.5" aria-hidden="true" />
+                      Valider le virement
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStatus(r.id, "unfulfilled")}
+                      className="rounded-full bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <i className="fa-solid fa-calendar-xmark mr-1.5" aria-hidden="true" />
+                      Libérer les dates
+                    </button>
+                  </>
+                )}
+                {r.status === "confirmed" && (
+                  <button
+                    type="button"
+                    onClick={() => setStatus(r.id, "cancelled")}
+                    className="rounded-full bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    Annuler
+                  </button>
+                )}
+              </div>
+            </div>
+          </article>
         );
       })}
     </div>
@@ -237,6 +289,7 @@ function VillasPanel() {
       price_per_person: v.price_per_person,
       cleaning_fee: v.cleaning_fee,
       deposit: v.deposit,
+      pricing_threshold: v.pricing_threshold ?? 0,
       is_active: v.is_active,
     });
   }
@@ -244,6 +297,7 @@ function VillasPanel() {
   async function save() {
     if (!editing) return;
     setSaving(true);
+    const thresholdVal = Number(editing.pricing_threshold);
     const payload = {
       name: editing.name.trim(),
       location: editing.location.trim(),
@@ -262,10 +316,15 @@ function VillasPanel() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
-      price_per_night: Number(editing.price_per_night),
+      price_per_night: computeVillaNightlyPrice({
+        price_per_person: Number(editing.price_per_person),
+        capacity: Number(editing.capacity),
+        pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
+      }),
       price_per_person: Number(editing.price_per_person),
       cleaning_fee: Number(editing.cleaning_fee),
       deposit: Number(editing.deposit),
+      pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
       is_active: editing.is_active,
     };
     const { error } = editingId
@@ -335,11 +394,9 @@ function VillasPanel() {
             value={editing.description}
             onChange={(e) => setEditing({ ...editing, description: e.target.value })}
           />
-          <textarea
-            className={`${field} min-h-24`}
-            placeholder="Liens des photos, une par ligne (https://...)"
-            value={editing.images}
-            onChange={(e) => setEditing({ ...editing, images: e.target.value })}
+          <VillaPhotoUploader
+            images={editing.images.split("\n").map((s) => s.trim()).filter(Boolean)}
+            onChange={(newImages) => setEditing({ ...editing, images: newImages.join("\n") })}
           />
           <input
             className={field}
@@ -395,23 +452,53 @@ function VillasPanel() {
                 min={0}
                 className={field}
                 value={editing.price_per_person}
-                onChange={(e) =>
-                  setEditing({ ...editing, price_per_person: Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  const p = Number(e.target.value);
+                  setEditing({ ...editing, price_per_person: p, price_per_night: p });
+                }}
               />
             </label>
             <label className="text-xs text-muted-foreground">
-              Prix par nuit indicatif (€)
+              Seuil avant majoration (+15%)
               <input
                 type="number"
                 min={0}
+                placeholder="Ex: 5 (laisser 0 pour aucun seuil)"
                 className={field}
-                value={editing.price_per_night}
+                value={editing.pricing_threshold || ""}
                 onChange={(e) =>
-                  setEditing({ ...editing, price_per_night: Number(e.target.value) })
+                  setEditing({ ...editing, pricing_threshold: Number(e.target.value) || 0 })
                 }
               />
             </label>
+            {(() => {
+              const p = Number(editing.price_per_person) || 0;
+              const cap = Number(editing.capacity) || 1;
+              const thresh = Number(editing.pricing_threshold) || 0;
+              const stdCap = getVillaStandardCapacity({ capacity: cap, pricing_threshold: thresh });
+              const nightlyPrice = computeVillaNightlyPrice({ price_per_person: p, capacity: cap, pricing_threshold: thresh });
+              const fullCapPrice = computeTotal(p, cap, 1, thresh);
+              const hasExtraSurcharge = thresh > 0 && cap > thresh;
+
+              return (
+                <div className="flex flex-col justify-center rounded-2xl border border-border bg-secondary/40 px-3.5 py-2 text-xs">
+                  <span className="font-medium text-foreground">
+                    Prix par nuit indicatif calculé
+                  </span>
+                  <span className="mt-0.5 font-semibold text-primary">
+                    {formatEUR(nightlyPrice)} / nuit
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    ({formatEUR(p)} / pers. / nuit · base {stdCap} pers.)
+                    {hasExtraSurcharge && (
+                      <span className="block text-[10px] text-amber-700 font-medium">
+                        Jusqu'à {formatEUR(fullCapPrice)}/nuit à {cap} pers. (+15% au-delà de {thresh} pers.)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
             <label className="text-xs text-muted-foreground">
               Frais de ménage (€)
               <input
@@ -491,7 +578,7 @@ function VillasPanel() {
             <div>
               <p className="font-display text-lg">{v.name}</p>
               <p className="text-sm text-muted-foreground">
-                {v.location} · {formatEUR(v.price_per_night)} / nuit ·{" "}
+                {v.location} · {formatEUR(computeVillaNightlyPrice(v))} / nuit ({formatEUR(v.price_per_person)} / pers.) ·{" "}
                 {v.is_active ? "visible" : "masquée"}
               </p>
             </div>

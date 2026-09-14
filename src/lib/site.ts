@@ -1,9 +1,9 @@
 export const SITE_NAME = "Antilla Stay";
 export const SITE_TAGLINE = "Guadeloupe";
-export const CONTACT_EMAIL = "contact@antillastay.com";
-/** Numéro au format international sans espaces pour wa.me */
-export const WHATSAPP_NUMBER = "590690000000";
-export const WHATSAPP_DISPLAY = "+590 690 00 00 00";
+export const CONTACT_EMAIL = "villaguadeloupe14@gmail.com";
+/** Numéro au format international sans espaces ni le 0 initial pour wa.me */
+export const WHATSAPP_NUMBER = "33780957372";
+export const WHATSAPP_DISPLAY = "+33 7 80 95 73 72";
 export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export const CHECK_IN_TIME = "10h00";
@@ -62,9 +62,94 @@ export function isPartial(option: PaymentOption | string) {
   return option === "partial_with_deposit" || option === "partial_no_deposit";
 }
 
-/** Prix total = tarif par personne et par nuit × personnes × nuits */
-export function computeTotal(pricePerPerson: number, guests: number, nights: number) {
-  return Math.round(pricePerPerson * guests * nights);
+export type PricingBreakdown = {
+  standardGuests: number;
+  surchargedGuests: number;
+  standardPricePerPerson: number;
+  surchargedPricePerPerson: number;
+  standardTotal: number;
+  surchargedTotal: number;
+  total: number;
+  hasSurcharge: boolean;
+};
+
+export function computePricingBreakdown(
+  pricePerPerson: number,
+  guests: number,
+  nights: number,
+  threshold?: number | null,
+): PricingBreakdown {
+  const p = Number(pricePerPerson) || 0;
+  const g = Math.max(0, Number(guests) || 0);
+  const n = Math.max(0, Number(nights) || 0);
+  const t = threshold != null && Number(threshold) > 0 ? Number(threshold) : 0;
+
+  const hasSurcharge = t > 0 && g > t;
+
+  if (!hasSurcharge) {
+    const total = p * g * n;
+    return {
+      standardGuests: g,
+      surchargedGuests: 0,
+      standardPricePerPerson: p,
+      surchargedPricePerPerson: p * 1.15,
+      standardTotal: total,
+      surchargedTotal: 0,
+      total: Math.round(total * 100) / 100,
+      hasSurcharge: false,
+    };
+  }
+
+  const standardGuests = Math.min(g, t);
+  const surchargedGuests = Math.max(0, g - t);
+  const surchargedPricePerPerson = p * 1.15;
+
+  const standardTotal = standardGuests * n * p;
+  const surchargedTotal = surchargedGuests * n * surchargedPricePerPerson;
+  const total = standardTotal + surchargedTotal;
+
+  return {
+    standardGuests,
+    surchargedGuests,
+    standardPricePerPerson: p,
+    surchargedPricePerPerson,
+    standardTotal: Math.round(standardTotal * 100) / 100,
+    surchargedTotal: Math.round(surchargedTotal * 100) / 100,
+    total: Math.round(total * 100) / 100,
+    hasSurcharge: true,
+  };
+}
+
+/** Prix total = tarif par personne et par nuit × personnes × nuits (avec majoration de 15% au-delà du seuil si défini) */
+export function computeTotal(
+  pricePerPerson: number,
+  guests: number,
+  nights: number,
+  threshold?: number | null,
+) {
+  return computePricingBreakdown(pricePerPerson, guests, nights, threshold).total;
+}
+
+/** Capacité standard pour le calcul du prix nuitée indicatif (pricing_threshold si défini et > 0, sinon capacity) */
+export function getVillaStandardCapacity(villa: {
+  capacity: number;
+  pricing_threshold?: number | null;
+}): number {
+  const threshold =
+    villa.pricing_threshold != null && Number(villa.pricing_threshold) > 0
+      ? Number(villa.pricing_threshold)
+      : 0;
+  return threshold > 0 ? threshold : Math.max(1, Number(villa.capacity) || 1);
+}
+
+/** Calcule le prix automatique par nuit d'une villa à sa capacité standard */
+export function computeVillaNightlyPrice(villa: {
+  price_per_person: number;
+  capacity: number;
+  pricing_threshold?: number | null;
+}): number {
+  const standardCapacity = getVillaStandardCapacity(villa);
+  return computeTotal(villa.price_per_person, standardCapacity, 1, villa.pricing_threshold);
 }
 
 export function computeDueNow(

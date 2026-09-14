@@ -1,8 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { amenityIcon, formatEUR, type Villa } from "@/lib/villas";
+import { computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
 
 export function VillaCard({ villa }: { villa: Villa }) {
   const cover = villa.images[0];
+  const nightlyPrice = computeVillaNightlyPrice(villa);
+  const stdCapacity = getVillaStandardCapacity(villa);
+
   return (
     <article className="card-hover group overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
       <Link to="/villas/$villaId" params={{ villaId: villa.id }} className="block">
@@ -59,10 +63,15 @@ export function VillaCard({ villa }: { villa: Villa }) {
         </div>
 
         <div className="flex items-end justify-between pt-1">
-          <p className="font-display text-2xl">
-            {formatEUR(villa.price_per_night)}
-            <span className="text-sm font-normal text-muted-foreground"> / nuit</span>
-          </p>
+          <div>
+            <p className="font-display text-2xl">
+              {formatEUR(nightlyPrice)}
+              <span className="text-sm font-normal text-muted-foreground"> / nuit</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {formatEUR(villa.price_per_person)} / pers. ({stdCapacity} pers.)
+            </p>
+          </div>
           <Link
             to="/villas/$villaId"
             params={{ villaId: villa.id }}

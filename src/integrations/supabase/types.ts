@@ -241,6 +241,7 @@ export type Database = {
           parties_allowed: boolean
           price_per_night: number
           price_per_person: number
+          pricing_threshold: number | null
           updated_at: string
         }
         Insert: {
@@ -262,6 +263,7 @@ export type Database = {
           parties_allowed?: boolean
           price_per_night?: number
           price_per_person?: number
+          pricing_threshold?: number | null
           updated_at?: string
         }
         Update: {
@@ -283,6 +285,7 @@ export type Database = {
           parties_allowed?: boolean
           price_per_night?: number
           price_per_person?: number
+          pricing_threshold?: number | null
           updated_at?: string
         }
         Relationships: []

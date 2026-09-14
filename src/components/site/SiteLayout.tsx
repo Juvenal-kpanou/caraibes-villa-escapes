@@ -12,7 +12,7 @@ const NAV = [
   { to: "/", label: "Accueil" },
   { to: "/villas", label: "Nos villas" },
   { to: "/comment-ca-marche", label: "Comment ça marche" },
-  { to: "/ma-reservation", label: "Ma réservation" },
+  { to: "/ma-reservation", label: "Suivre ma réservation" },
 ] as const;
 
 export function SiteLayout({ children }: { children: ReactNode }) {
@@ -45,28 +45,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="rounded-full px-3 py-2 text-sm text-foreground/70 transition-colors hover:text-primary"
-              aria-label={`Écrire à ${CONTACT_EMAIL}`}
-            >
-              <i className="fa-solid fa-envelope" aria-hidden="true" />
-            </a>
-            <a
-              href={WHATSAPP_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full px-3 py-2 text-sm font-medium text-palm transition-colors hover:text-primary"
-            >
-              <i className="fa-brands fa-whatsapp mr-1.5" aria-hidden="true" />
-              WhatsApp
-            </a>
-            <Link
-              to="/mon-espace"
-              className="rounded-full px-3.5 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary/70"
-            >
-              Mon espace
-            </Link>
             <Link
               to="/villas"
               className="gradient-lagoon ml-2 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lift"
@@ -97,36 +75,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
-            <Link
-              to="/mon-espace"
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-secondary/70"
-            >
-              Mon espace
-            </Link>
-            <Link
-              to="/inscription"
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-secondary/70"
-            >
-              Créer un compte
-            </Link>
-            <a
-              href={WHATSAPP_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-xl px-3 py-2.5 text-sm font-medium text-palm"
-            >
-              <i className="fa-brands fa-whatsapp mr-2" aria-hidden="true" />
-              {WHATSAPP_DISPLAY}
-            </a>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="block rounded-xl px-3 py-2.5 text-sm font-medium"
-            >
-              <i className="fa-solid fa-envelope mr-2" aria-hidden="true" />
-              {CONTACT_EMAIL}
-            </a>
           </nav>
         )}
       </header>
@@ -174,20 +122,25 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="text-sm">
             <p className="mb-3 font-semibold">Suivez-nous</p>
-            <div className="flex gap-2">
-              {[
-                "fa-brands fa-facebook-f",
-                "fa-brands fa-instagram",
-                "fa-brands fa-whatsapp",
-                "fa-brands fa-tripadvisor",
-              ].map((icon) => (
-                <span
-                  key={icon}
-                  className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-soft transition-transform duration-300 hover:-translate-y-0.5"
-                >
-                  <i className={icon} aria-hidden="true" />
-                </span>
-              ))}
+            <div className="flex items-center gap-2.5">
+              <a
+                href="https://www.tiktok.com/@villa.guadeloupe6"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+                className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-soft transition-transform duration-300 hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground"
+              >
+                <i className="fa-brands fa-tiktok text-sm" aria-hidden="true" />
+              </a>
+              <a
+                href="https://wa.me/33780957372"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-soft transition-transform duration-300 hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground"
+              >
+                <i className="fa-brands fa-whatsapp text-base" aria-hidden="true" />
+              </a>
             </div>
             <Link
               to="/admin-connexion"
@@ -201,6 +154,18 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           © {new Date().getFullYear()} {SITE_NAME} — Paiement par virement bancaire uniquement.
         </div>
       </footer>
+
+      {/* Bouton WhatsApp flottant avec animation de pulsation */}
+      <a
+        href="https://wa.me/33780957372?text=Bonjour%2C%20je%20souhaite%20avoir%20des%20informations%20sur%20une%20villa"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Contacter sur WhatsApp"
+        className="fixed bottom-6 right-6 z-50 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lift transition-transform duration-300 hover:scale-110 focus:outline-none"
+      >
+        <span className="pointer-events-none absolute inset-0 rounded-full bg-[#25D366]/60 animate-ping" />
+        <i className="fa-brands fa-whatsapp relative z-10 text-3xl" aria-hidden="true" />
+      </a>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import {
   SCHEDULE_LABEL,
   SITE_NAME,
   computeCommitment,
+  computePricingBreakdown,
   paymentOptionLabel,
 } from "@/lib/site";
 import { STATUS_LABELS, formatDateFr, formatEUR } from "@/lib/villas";
@@ -20,7 +21,8 @@ export type VoucherReservation = {
   amount_due_now: number;
   payment_option: string;
   status: string;
-  villas?: { name: string; location: string } | null;
+  pricing_threshold?: number | null;
+  villas?: { name: string; location: string; pricing_threshold?: number | null } | null;
 };
 
 export function ReservationVoucher({
@@ -38,6 +40,14 @@ export function ReservationVoucher({
   const paid = Number(reservation.amount_paid);
   const remaining = Math.max(0, commitment - paid);
   const fullyPaid = remaining <= 0;
+
+  const threshold = reservation.villas?.pricing_threshold ?? reservation.pricing_threshold;
+  const breakdown = computePricingBreakdown(
+    Number(reservation.price_per_person),
+    reservation.guests,
+    reservation.nights,
+    threshold,
+  );
 
   return (
     <div className="rounded-3xl border border-border bg-card p-6 shadow-soft print:border-0 print:shadow-none">
@@ -85,14 +95,34 @@ export function ReservationVoucher({
 
         <div className="space-y-2 rounded-2xl bg-secondary/50 p-5 text-sm">
           <p className="font-semibold">Détail du montant</p>
-          <p className="text-muted-foreground">
-            {reservation.guests} personne{reservation.guests > 1 ? "s" : ""} ×{" "}
-            {reservation.nights} nuit{reservation.nights > 1 ? "s" : ""} ×{" "}
-            {formatEUR(Number(reservation.price_per_person))} ={" "}
-            <strong className="text-foreground">
-              {formatEUR(Number(reservation.total_amount))}
-            </strong>
-          </p>
+          {breakdown.hasSurcharge ? (
+            <div className="space-y-1 text-xs text-muted-foreground border-b border-border/50 pb-2">
+              <p>
+                {breakdown.standardGuests} personne{breakdown.standardGuests > 1 ? "s" : ""} ×{" "}
+                {reservation.nights} nuit{reservation.nights > 1 ? "s" : ""} ×{" "}
+                {formatEUR(breakdown.standardPricePerPerson)} ={" "}
+                <strong className="text-foreground">{formatEUR(breakdown.standardTotal)}</strong>
+              </p>
+              <p className="text-amber-800 font-medium">
+                + {breakdown.surchargedGuests} personne{breakdown.surchargedGuests > 1 ? "s" : ""} ×{" "}
+                {reservation.nights} nuit{reservation.nights > 1 ? "s" : ""} ×{" "}
+                {formatEUR(breakdown.surchargedPricePerPerson)} (majoration +15%) ={" "}
+                <strong className="text-foreground">{formatEUR(breakdown.surchargedTotal)}</strong>
+              </p>
+              <p className="pt-1 text-sm font-semibold text-foreground">
+                Total séjour : {formatEUR(Number(reservation.total_amount))}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              {reservation.guests} personne{reservation.guests > 1 ? "s" : ""} ×{" "}
+              {reservation.nights} nuit{reservation.nights > 1 ? "s" : ""} ×{" "}
+              {formatEUR(Number(reservation.price_per_person))} ={" "}
+              <strong className="text-foreground">
+                {formatEUR(Number(reservation.total_amount))}
+              </strong>
+            </p>
+          )}
           <p className="flex justify-between">
             <span className="text-muted-foreground">Caution</span>
             <span>{formatEUR(Number(reservation.deposit))}</span>

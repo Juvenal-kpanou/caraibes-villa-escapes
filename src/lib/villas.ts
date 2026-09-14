@@ -18,6 +18,7 @@ export type Villa = {
   price_per_night: number;
   cleaning_fee: number;
   deposit: number;
+  pricing_threshold?: number | null;
   is_active: boolean;
   created_at: string;
 };
@@ -44,15 +45,74 @@ export const villaQuery = (id: string) =>
     },
   });
 
+export function eachDateISO(from: string, to: string) {
+  const out: string[] = [];
+  const cursor = new Date(`${from}T12:00:00`);
+  const end = new Date(`${to}T12:00:00`);
+  while (cursor < end) {
+    out.push(cursor.toISOString().slice(0, 10));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
+
+export async function fetchUnavailableDatesForVilla(client: any, villaId: string): Promise<string[]> {
+  const datesSet = new Set<string>();
+
+  // 1. Try RPC get_unavailable_dates first if available
+  try {
+    const { data: rpcDates } = await client.rpc("get_unavailable_dates", { _villa_id: villaId });
+    if (Array.isArray(rpcDates)) {
+      for (const d of rpcDates) datesSet.add(String(d).slice(0, 10));
+    }
+  } catch {
+    // Ignore RPC error if missing or failing
+  }
+
+  // 2. Fetch manual blocked_dates
+  const { data: blocked } = await client.from("blocked_dates").select("date").eq("villa_id", villaId);
+  if (blocked) {
+    for (const b of blocked) datesSet.add(String(b.date).slice(0, 10));
+  }
+
+  // 3. Remove date_overrides
+  const { data: overrides } = await client.from("date_overrides").select("date").eq("villa_id", villaId);
+  if (overrides) {
+    for (const o of overrides) datesSet.delete(String(o.date).slice(0, 10));
+  }
+
+  // 4. Fetch active reservations (pending < 72h OR confirmed)
+  const { data: resList } = await client
+    .from("reservations")
+    .select("check_in, check_out, status, created_at")
+    .eq("villa_id", villaId)
+    .in("status", ["pending", "confirmed"]);
+
+  if (resList) {
+    const now = Date.now();
+    const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
+
+    for (const r of resList) {
+      if (r.status === "pending") {
+        const createdAtTime = new Date(r.created_at).getTime();
+        // Skip expired pending reservations (> 72h)
+        if (now - createdAtTime > SEVENTY_TWO_HOURS_MS) {
+          continue;
+        }
+      }
+      const range = eachDateISO(r.check_in, r.check_out);
+      for (const d of range) datesSet.add(d);
+    }
+  }
+
+  return Array.from(datesSet).sort();
+}
+
 export const unavailableDatesQuery = (villaId: string) =>
   queryOptions({
     queryKey: ["unavailable", villaId],
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.rpc("get_unavailable_dates", {
-        _villa_id: villaId,
-      });
-      if (error) throw error;
-      return ((data ?? []) as string[]).map((d) => String(d).slice(0, 10));
+      return fetchUnavailableDatesForVilla(supabase, villaId);
     },
   });
 
@@ -118,10 +178,13 @@ export function nightsBetween(from: Date, to: Date) {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  pending: "En attente de virement",
+  pending: "En attente de vérification",
   confirmed: "Virement confirmé",
+  unfulfilled: "Demande non aboutie",
+  expired: "Expirée",
   cancelled: "Annulée",
   refund_pending: "Remboursement en cours",
   refunded: "Remboursement effectué",
   refund_rejected: "Remboursement rejeté",
 };
+

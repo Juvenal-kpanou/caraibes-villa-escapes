@@ -13,7 +13,10 @@ import {
   SCHEDULE_LABEL,
   computeCommitment,
   computeDueNow,
+  computePricingBreakdown,
   computeTotal,
+  computeVillaNightlyPrice,
+  getVillaStandardCapacity,
   requiresDeposit,
   type PaymentOption,
 } from "@/lib/site";
@@ -34,8 +37,9 @@ export const Route = createFileRoute("/villas/$villaId")({
     const title = villa
       ? `${villa.name}, ${villa.location} — Antilla Stay`
       : "Villa introuvable — Antilla Stay";
+    const nightlyPrice = villa ? computeVillaNightlyPrice(villa) : 0;
     const description = villa
-      ? `${villa.name} à ${villa.location} : ${villa.bedrooms} chambres, jusqu'à ${villa.capacity} personnes, à partir de ${villa.price_per_night} € la nuit.`
+      ? `${villa.name} à ${villa.location} : ${villa.bedrooms} chambres, jusqu'à ${villa.capacity} personnes, à partir de ${formatEUR(nightlyPrice)} la nuit (${villa.price_per_person} € / pers. / nuit).`
       : "Cette villa n'est plus disponible à la réservation.";
     const meta = [
       { title },
@@ -109,7 +113,13 @@ function VillaDetailPage() {
     );
   }
 
-  const total = computeTotal(Number(villa.price_per_person), form.guests, nights);
+  const breakdown = computePricingBreakdown(
+    Number(villa.price_per_person),
+    form.guests,
+    nights,
+    villa.pricing_threshold,
+  );
+  const total = breakdown.total;
   const dueNow = computeDueNow(paymentOption, total, Number(villa.deposit));
   const commitment = computeCommitment(paymentOption, total, Number(villa.deposit));
   const canSubmit =
@@ -301,13 +311,19 @@ function VillaDetailPage() {
                 >
                   <div>
                     <p className="font-display text-2xl">
-                      {formatEUR(villa.price_per_person)}
+                      {formatEUR(computeVillaNightlyPrice(villa))}
                       <span className="text-sm font-normal text-muted-foreground">
                         {" "}
-                        / personne / nuit
+                        / nuit
                       </span>
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
+                      {formatEUR(villa.price_per_person)} / pers. / nuit (base {getVillaStandardCapacity(villa)} pers.)
+                      {villa.pricing_threshold && villa.pricing_threshold > 0
+                        ? ` · majoration +15% au-delà de ${villa.pricing_threshold} pers.`
+                        : ""}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       Caution {formatEUR(villa.deposit)} · {SCHEDULE_LABEL}
                     </p>
                   </div>
@@ -351,13 +367,34 @@ function VillaDetailPage() {
                         <p>
                           Du {formatDateFr(range.checkIn!)} au {formatDateFr(range.checkOut!)}
                         </p>
-                        <p className="mt-2 flex justify-between text-muted-foreground">
-                          <span>
-                            {form.guests} personne{form.guests > 1 ? "s" : ""} × {nights} nuit
-                            {nights > 1 ? "s" : ""} × {formatEUR(villa.price_per_person)}
-                          </span>
-                          <span>{formatEUR(total)}</span>
-                        </p>
+                        {breakdown.hasSurcharge ? (
+                          <div className="mt-2 space-y-1 text-xs text-muted-foreground border-b border-border/50 pb-2">
+                            <div className="flex justify-between">
+                              <span>
+                                {breakdown.standardGuests} pers. × {nights} nuit{nights > 1 ? "s" : ""} × {formatEUR(breakdown.standardPricePerPerson)}
+                              </span>
+                              <span>{formatEUR(breakdown.standardTotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-amber-800 font-medium">
+                              <span>
+                                + {breakdown.surchargedGuests} pers. × {nights} nuit{nights > 1 ? "s" : ""} × {formatEUR(breakdown.surchargedPricePerPerson)} (+15%)
+                              </span>
+                              <span>{formatEUR(breakdown.surchargedTotal)}</span>
+                            </div>
+                            <div className="flex justify-between font-semibold text-foreground pt-1">
+                              <span>Sous-total séjour</span>
+                              <span>{formatEUR(total)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="mt-2 flex justify-between text-muted-foreground">
+                            <span>
+                              {form.guests} personne{form.guests > 1 ? "s" : ""} × {nights} nuit
+                              {nights > 1 ? "s" : ""} × {formatEUR(villa.price_per_person)}
+                            </span>
+                            <span>{formatEUR(total)}</span>
+                          </p>
+                        )}
                         <p className="flex justify-between text-muted-foreground">
                           <span>Caution</span>
                           <span>

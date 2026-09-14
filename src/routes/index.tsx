@@ -4,7 +4,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { VillaCard } from "@/components/site/VillaCard";
 import { Reveal } from "@/components/site/Reveal";
 import { villasQuery, formatEUR } from "@/lib/villas";
-import heroAsset from "@/assets/hero.jpg.asset.json";
+import { computeVillaNightlyPrice } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
@@ -63,71 +63,69 @@ function Index() {
   const { data: villas } = useSuspenseQuery(villasQuery());
   const featured = villas.slice(0, 3);
   const minPrice = villas.length
-    ? Math.min(...villas.map((v) => v.price_per_night))
+    ? Math.min(...villas.map((v) => computeVillaNightlyPrice(v)))
     : 0;
 
   return (
     <SiteLayout>
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
+      <section className="relative flex min-h-[85vh] w-full items-center justify-center overflow-hidden py-20 text-center">
+        {/* Image d'arrière-plan immersive avec overlay sombre pour une lisibilité parfaite */}
+        <div className="absolute inset-0 z-0">
           <img
-            src={heroAsset.url}
-            alt="Villa avec piscine en Guadeloupe"
+            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=2000&q=85"
+            alt="Villa d'exception avec piscine en Guadeloupe"
             className="size-full object-cover"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/70" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[70vh] w-full max-w-6xl items-center px-4 py-24 md:min-h-[78vh]">
-          <div className="max-w-2xl">
-            <Reveal>
-              <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                <i className="fa-solid fa-sun" aria-hidden="true" />
-                Locations en Guadeloupe
-              </p>
-            </Reveal>
-            <Reveal delay={80}>
-              <h1 className="mt-5 font-display text-4xl leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
-                Des villas de charme pour des vacances{" "}
-                <span className="text-gradient">authentiques</span> en Guadeloupe.
-              </h1>
-            </Reveal>
-            <Reveal delay={160}>
-              <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground md:text-lg">
-                Piscine privée, vue mer, jardin tropical… Réservez simplement par virement bancaire
-                et recevez votre confirmation en quelques clics.
-              </p>
-            </Reveal>
-            <Reveal delay={240}>
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link
-                  to="/villas"
-                  className="gradient-lagoon inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lift"
-                >
-                  Découvrir les villas
-                  <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-                </Link>
-                <Link
-                  to="/comment-ca-marche"
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-6 py-3 text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-secondary"
-                >
-                  Comment ça marche ?
-                </Link>
-              </div>
-            </Reveal>
+        <div className="relative z-10 mx-auto w-full max-w-4xl px-4 text-center">
+          <Reveal>
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md shadow-soft">
+              <i className="fa-solid fa-sun text-amber-300" aria-hidden="true" />
+              Locations de prestige en Guadeloupe
+            </p>
+          </Reveal>
+          <Reveal delay={80}>
+            <h1 className="mt-6 font-display text-4xl leading-[1.1] text-white drop-shadow-md md:text-6xl lg:text-7xl">
+              Des villas de charme pour des vacances{" "}
+              <span className="text-emerald-300 underline decoration-emerald-400/50 underline-offset-8">authentiques</span> en Guadeloupe.
+            </h1>
+          </Reveal>
+          <Reveal delay={160}>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/90 drop-shadow md:text-xl">
+              Piscine privée, vue mer féerique, jardin tropical…
+            </p>
+          </Reveal>
+          <Reveal delay={240}>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                to="/villas"
+                className="gradient-lagoon inline-flex items-center gap-2.5 rounded-full px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:scale-105"
+              >
+                Découvrir les villas
+                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+              </Link>
+              <Link
+                to="/comment-ca-marche"
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-white/15 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25"
+              >
+                Comment ça marche ?
+              </Link>
+            </div>
+          </Reveal>
 
-            {minPrice > 0 && (
-              <Reveal delay={320}>
-                <p className="mt-6 text-sm text-muted-foreground">
-                  À partir de{" "}
-                  <span className="font-display text-2xl text-foreground">{formatEUR(minPrice)}</span>
-                  <span className="text-xs"> / nuit</span>
-                </p>
-              </Reveal>
-            )}
-          </div>
+          {minPrice > 0 && (
+            <Reveal delay={320}>
+              <p className="mt-8 text-sm font-medium text-white/80">
+                À partir de{" "}
+                <span className="font-display text-2xl font-bold text-white drop-shadow">{formatEUR(minPrice)}</span>
+                <span className="text-xs"> / nuit</span>
+              </p>
+            </Reveal>
+          )}
         </div>
       </section>
 

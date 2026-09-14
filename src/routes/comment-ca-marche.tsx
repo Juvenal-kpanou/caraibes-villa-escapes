@@ -39,7 +39,7 @@ const STEPS = [
   {
     icon: "fa-solid fa-paper-plane",
     title: "3. Envoyez votre demande",
-    text: "Renseignez vos coordonnées et le nombre de voyageurs. Votre demande est enregistrée avec une référence unique au format KRK-XXXXXX.",
+    text: "Renseignez vos coordonnées et le nombre de voyageurs. Votre demande est enregistrée avec une référence unique au format ANT-XXXXXX.",
   },
   {
     icon: "fa-solid fa-building-columns",
@@ -64,11 +64,11 @@ const FAQ = [
   },
   {
     q: "Puis-je dépasser la capacité indiquée ?",
-    a: "Non. Le nombre de voyageurs ne peut pas dépasser la capacité maximale de la villa, contrôlée automatiquement lors de la demande.",
+    a: "Oui, dans la limite de la capacité maximale de la villa. Au-delà d'un certain seuil de voyageurs, une majoration de 15% s'applique sur le tarif par personne et par nuit pour les personnes supplémentaires.",
   },
   {
     q: "Comment suivre mon dossier ?",
-    a: "Depuis la page Ma réservation, saisissez votre référence KRK-XXXXXX pour consulter le statut, le montant et les coordonnées bancaires.",
+    a: "Depuis la page Ma réservation, saisissez votre référence ANT-XXXXXX pour consulter le statut, le montant et les coordonnées bancaires.",
   },
   {
     q: "Une caution est-elle demandée ?",
