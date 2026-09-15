@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -66,7 +66,48 @@ function VillaDetailPage() {
   const { data: unavailable = [] } = useQuery(unavailableDatesQuery(villaId));
   const { data: bank } = useQuery(bankSettingsQuery());
 
-  const [activeImage, setActiveImage] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  const images = Array.isArray(villa?.images) && villa.images.length > 0 ? villa.images : [];
+
+  function prevSlide(e?: React.MouseEvent) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!images.length) return;
+    setCurrentSlide((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+  }
+
+  function nextSlide(e?: React.MouseEvent) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!images.length) return;
+    setCurrentSlide((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || !images.length) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
+
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        nextSlide();
+      } else {
+        prevSlide();
+      }
+    }
+    touchStartX.current = null;
+  }
+
   const [range, setRange] = useState<{ checkIn: string | null; checkOut: string | null }>({
     checkIn: null,
     checkOut: null,
@@ -122,13 +163,6 @@ function VillaDetailPage() {
   const total = breakdown.total;
   const dueNow = computeDueNow(paymentOption, total, Number(villa.deposit));
   const commitment = computeCommitment(paymentOption, total, Number(villa.deposit));
-  const canSubmit =
-    nights > 0 &&
-    form.name.trim().length >= 2 &&
-    /.+@.+\..+/.test(form.email) &&
-    form.phone.trim().length >= 6 &&
-    form.guests >= 1 &&
-    form.guests <= villa.capacity;
 
   return (
     <SiteLayout>
@@ -142,39 +176,113 @@ function VillaDetailPage() {
         </Link>
 
         <Reveal>
-          <p className="mt-6 text-xs uppercase tracking-[0.24em] text-primary">
+          <p className="mt-6 text-xs uppercase tracking-[0.24em] font-semibold text-primary">
             <i className="fa-solid fa-location-dot mr-1.5" aria-hidden="true" />
-            {villa.location}
+            {villa.location}, Guadeloupe
           </p>
           <h1 className="mt-2 font-display text-4xl md:text-5xl">{villa.name}</h1>
         </Reveal>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-[3fr_1fr]">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted shadow-soft">
-            {villa.images[activeImage] ? (
-              <img
-                src={villa.images[activeImage]}
-                alt={`Villa ${villa.name} à ${villa.location}`}
-                className="size-full object-cover"
-                width={1600}
-                height={1200}
-              />
+        {/* Carrousel Multi-Photos Fiche Client */}
+        <div className="mt-6 space-y-3">
+          <div
+            className="group relative aspect-[16/10] w-full overflow-hidden rounded-3xl bg-muted shadow-soft md:aspect-[16/9]"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {images.length > 0 ? (
+              <div
+                className="flex size-full transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              >
+                {images.map((img, i) => (
+                  <div key={`${img.slice(0, 30)}-${i}`} className="size-full shrink-0">
+                    <img
+                      src={img}
+                      alt={`Villa ${villa.name} à ${villa.location} — photo ${i + 1}`}
+                      loading={i === 0 ? "eager" : "lazy"}
+                      className="size-full object-cover"
+                      width={1600}
+                      height={1000}
+                    />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex size-full items-center justify-center text-muted-foreground">
                 <i className="fa-solid fa-image text-4xl" aria-hidden="true" />
               </div>
             )}
-          </div>
-          {villa.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-3 md:grid-cols-1">
-              {villa.images.slice(0, 4).map((img, i) => (
+
+            {/* Badge Disponibilité & Piscine */}
+            <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-wrap gap-2">
+              <span className="rounded-full bg-emerald-600/90 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-white shadow-soft">
+                <i className="fa-solid fa-circle-check mr-1.5" aria-hidden="true" />
+                Disponible à la réservation
+              </span>
+              {villa.has_pool && (
+                <span className="rounded-full bg-cyan-600/90 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-white shadow-soft">
+                  <i className="fa-solid fa-water-pool mr-1.5" aria-hidden="true" />
+                  Piscine privée
+                </span>
+              )}
+            </div>
+
+            {/* Compteur de position (ex: 1 / 5) */}
+            {images.length > 1 && (
+              <span className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md shadow-soft">
+                {currentSlide + 1} / {images.length}
+              </span>
+            )}
+
+            {/* Flèches de navigation Précédent / Suivant (toujours claires et cliquables) */}
+            {images.length > 1 && (
+              <>
                 <button
-                  key={img}
                   type="button"
-                  onClick={() => setActiveImage(i)}
-                  aria-label={`Photo ${i + 1}`}
-                  className={`aspect-[4/3] overflow-hidden rounded-2xl border-2 transition-all ${
-                    i === activeImage ? "border-primary" : "border-transparent opacity-80"
+                  onClick={prevSlide}
+                  aria-label="Photo précédente"
+                  className="absolute left-3 top-1/2 z-30 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lift transition-all hover:bg-background hover:scale-110 active:scale-95 cursor-pointer"
+                >
+                  <i className="fa-solid fa-chevron-left text-sm" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={nextSlide}
+                  aria-label="Photo suivante"
+                  className="absolute right-3 top-1/2 z-30 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lift transition-all hover:bg-background hover:scale-110 active:scale-95 cursor-pointer"
+                >
+                  <i className="fa-solid fa-chevron-right text-sm" aria-hidden="true" />
+                </button>
+              </>
+            )}
+
+            {/* Puces indicatrices au bas de l'image */}
+            {images.length > 1 && (
+              <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+                {images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`rounded-full transition-all duration-300 ${
+                      i === currentSlide ? "h-2 w-5 bg-white shadow-soft" : "h-1.5 w-1.5 bg-white/60"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Bande de vignettes pour sélection directe de photo */}
+          {images.length > 1 && (
+            <div className="flex gap-2.5 overflow-x-auto pb-1 pt-1 scrollbar-none">
+              {images.map((img, i) => (
+                <button
+                  key={`${img.slice(0, 30)}-thumb-${i}`}
+                  type="button"
+                  onClick={() => setCurrentSlide(i)}
+                  aria-label={`Afficher la photo ${i + 1}`}
+                  className={`relative aspect-[4/3] h-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                    i === currentSlide ? "border-primary ring-2 ring-primary/30" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
                   <img src={img} alt="" loading="lazy" className="size-full object-cover" />
