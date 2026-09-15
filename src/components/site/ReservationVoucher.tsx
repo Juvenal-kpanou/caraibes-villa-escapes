@@ -10,6 +10,9 @@ import { STATUS_LABELS, formatDateFr, formatEUR } from "@/lib/villas";
 export type VoucherReservation = {
   reference: string;
   guest_name: string;
+  guest_email?: string;
+  guest_phone?: string;
+  guest_address?: string | null;
   guests: number;
   check_in: string;
   check_out: string;
@@ -50,7 +53,7 @@ export function ReservationVoucher({
   );
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-6 shadow-soft print:border-0 print:shadow-none">
+    <div className="rounded-3xl border border-border bg-card p-6 shadow-soft print:border-0 print:shadow-none min-w-0 break-words">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
         <div>
           <p className="font-display text-2xl">{SITE_NAME}</p>
@@ -67,16 +70,22 @@ export function ReservationVoucher({
       </div>
 
       <div className="grid gap-6 py-5 md:grid-cols-2">
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-sm break-words">
           <h3 className="font-display text-lg">{reservation.villas?.name ?? "Villa"}</h3>
           <p className="text-muted-foreground">
             <i className="fa-solid fa-location-dot mr-1.5 text-primary" aria-hidden="true" />
             {reservation.villas?.location ?? "Guadeloupe"}
           </p>
-          <p>
+          <p className="break-words">
             <span className="text-muted-foreground">Client : </span>
             {reservation.guest_name}
           </p>
+          {reservation.guest_address && (
+            <p className="break-words">
+              <span className="text-muted-foreground">Adresse : </span>
+              {reservation.guest_address}
+            </p>
+          )}
           <p>
             <span className="text-muted-foreground">Arrivée : </span>
             {formatDateFr(reservation.check_in)} à 10h00

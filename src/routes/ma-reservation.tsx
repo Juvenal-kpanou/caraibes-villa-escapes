@@ -223,6 +223,14 @@ function MyReservationPage() {
                       <dt className="text-muted-foreground">Titulaire</dt>
                       <dd className="font-semibold">{reservation.guest_name}</dd>
                     </div>
+                    {(reservation as any).guest_address && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">Adresse</dt>
+                        <dd className="font-semibold text-right break-words max-w-[220px]">
+                          {(reservation as any).guest_address}
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </div>
 

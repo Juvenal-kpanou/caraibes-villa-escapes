@@ -16,6 +16,7 @@ const createSchema = z.object({
   guestName: z.string().trim().min(2).max(120),
   guestEmail: z.string().trim().email().max(255),
   guestPhone: z.string().trim().min(6).max(30),
+  guestAddress: z.string().trim().max(255).optional().or(z.literal("")),
   guests: z.number().int().min(1).max(40),
   checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -23,7 +24,7 @@ const createSchema = z.object({
 });
 
 const RESERVATION_FIELDS =
-  "id, reference, guest_name, guest_email, guest_phone, guests, check_in, check_out, nights, price_per_night, price_per_person, cleaning_fee, deposit, total_amount, amount_due_now, amount_paid, payment_option, deposit_required, status, created_at, confirmed_at, refund_requested_at, refund_processed_at, villas(name, location, capacity, images)";
+  "id, reference, guest_name, guest_email, guest_phone, guest_address, guests, check_in, check_out, nights, price_per_night, price_per_person, cleaning_fee, deposit, total_amount, amount_due_now, amount_paid, payment_option, deposit_required, status, created_at, confirmed_at, refund_requested_at, refund_processed_at, villas(name, location, capacity, images)";
 
 function makeReference() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -95,12 +96,13 @@ export const createReservation = createServerFn({ method: "POST" })
       reference = makeReference();
     }
 
-    const { data: created, error: insertError } = await supabaseAdmin.from("reservations").insert({
+    const insertPayload: Record<string, any> = {
       reference,
       villa_id: data.villaId,
       guest_name: data.guestName,
       guest_email: data.guestEmail,
       guest_phone: data.guestPhone,
+      guest_address: data.guestAddress || null,
       guests: data.guests,
       check_in: data.checkIn,
       check_out: data.checkOut,
@@ -115,9 +117,27 @@ export const createReservation = createServerFn({ method: "POST" })
       payment_option: data.paymentOption,
       deposit_required: requiresDeposit(data.paymentOption),
       status: "pending",
-    })
+    };
+
+    let { data: created, error: insertError } = await supabaseAdmin
+      .from("reservations")
+      .insert(insertPayload)
       .select(RESERVATION_FIELDS)
       .single();
+
+    // Fallback si la colonne guest_address n'existe pas encore dans la base Supabase
+    if (insertError && (insertError.message?.includes("guest_address") || insertError.message?.includes("schema cache"))) {
+      delete insertPayload.guest_address;
+      const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
+      const retry = await supabaseAdmin
+        .from("reservations")
+        .insert(insertPayload)
+        .select(safeFields)
+        .single();
+      created = retry.data;
+      insertError = retry.error;
+    }
+
     if (insertError) throw new Error(insertError.message);
 
     return { reference, nights, total, dueNow, reservation: created };

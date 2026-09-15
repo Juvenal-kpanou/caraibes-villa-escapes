@@ -71,7 +71,7 @@ function VillaDetailPage() {
     checkIn: null,
     checkOut: null,
   });
-  const [form, setForm] = useState({ name: "", email: "", phone: "", guests: 2 });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", guests: 2 });
   const [paymentOption, setPaymentOption] = useState<PaymentOption>("full_with_deposit");
   const [reference, setReference] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<React.ComponentProps<typeof ReservationVoucher>["reservation"] | null>(null);
@@ -294,13 +294,34 @@ function VillaDetailPage() {
                   className="space-y-4"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (!canSubmit || !range.checkIn || !range.checkOut) return;
+                    if (!range.checkIn || !range.checkOut || nights < 1) {
+                      toast.error("Veuillez choisir vos dates d'arrivée et de départ dans le calendrier.");
+                      return;
+                    }
+                    if (!form.name.trim()) {
+                      toast.error("Veuillez remplir votre nom et prénom.");
+                      return;
+                    }
+                    if (!form.email.trim() || !/.+@.+\..+/.test(form.email)) {
+                      toast.error("Veuillez indiquer une adresse e-mail valide.");
+                      return;
+                    }
+                    if (!form.phone.trim() || form.phone.trim().length < 6) {
+                      toast.error("Veuillez indiquer un numéro de téléphone valide.");
+                      return;
+                    }
+                    if (!form.address.trim()) {
+                      toast.error("Veuillez indiquer votre adresse du domicile.");
+                      return;
+                    }
+
                     mutation.mutate({
                       data: {
                         villaId: villa.id,
-                        guestName: form.name,
-                        guestEmail: form.email,
-                        guestPhone: form.phone,
+                        guestName: form.name.trim(),
+                        guestEmail: form.email.trim(),
+                        guestPhone: form.phone.trim(),
+                        guestAddress: form.address.trim(),
                         guests: form.guests,
                         checkIn: range.checkIn,
                         checkOut: range.checkOut,
@@ -444,6 +465,13 @@ function VillaDetailPage() {
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       className="w-full rounded-full border border-border bg-background px-4 py-3 text-sm"
                     />
+                    <input
+                      required
+                      placeholder="Adresse du domicile"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      className="w-full rounded-full border border-border bg-background px-4 py-3 text-sm"
+                    />
                     <label className="flex items-center justify-between gap-3 rounded-full border border-border px-4 py-2 text-sm">
                       <span className="text-muted-foreground">Voyageurs</span>
                       <input
@@ -459,8 +487,8 @@ function VillaDetailPage() {
 
                   <button
                     type="submit"
-                    disabled={!canSubmit || mutation.isPending}
-                    className="gradient-lagoon w-full rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-opacity disabled:opacity-50"
+                    disabled={mutation.isPending}
+                    className="gradient-lagoon w-full rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-opacity disabled:opacity-50 hover:brightness-110 cursor-pointer"
                   >
                     {mutation.isPending ? "Envoi en cours..." : "Envoyer ma demande"}
                   </button>

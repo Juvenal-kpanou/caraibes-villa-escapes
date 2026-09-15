@@ -210,8 +210,9 @@ function ReservationsPanel() {
                   </span>
                 )}
               </div>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground break-words">
                 {r.guest_name} · {r.guest_email} · {r.guest_phone}
+                {r.guest_address ? ` · ${r.guest_address}` : ""}
               </p>
               <p className="text-muted-foreground">
                 Du {formatDateFr(r.check_in)} au {formatDateFr(r.check_out)} · {r.nights} nuits ·{" "}
