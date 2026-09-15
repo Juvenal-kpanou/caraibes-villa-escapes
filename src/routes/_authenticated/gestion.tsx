@@ -308,6 +308,14 @@ function VillasPanel() {
 
   async function save() {
     if (!editing) return;
+    if (!editing.name.trim()) {
+      toast.error("Veuillez remplir le nom de la villa.");
+      return;
+    }
+    if (!editing.location.trim()) {
+      toast.error("Veuillez indiquer la commune de la villa (ex: Sainte-Anne).");
+      return;
+    }
     setSaving(true);
     try {
       const thresholdVal = Number(editing.pricing_threshold);
@@ -315,30 +323,30 @@ function VillasPanel() {
         name: editing.name.trim(),
         location: editing.location.trim(),
         description: editing.description.trim(),
-        images: editing.images
+        images: (typeof editing.images === "string" ? editing.images : "")
           .split("\n")
           .map((s) => s.trim())
           .filter(Boolean),
-        capacity: Number(editing.capacity),
-        bedrooms: Number(editing.bedrooms),
-        bathrooms: Number(editing.bathrooms),
-        beds: Number(editing.beds),
-        has_pool: editing.has_pool,
-        parties_allowed: editing.parties_allowed,
-        amenities: editing.amenities
+        capacity: Math.max(1, Number(editing.capacity) || 1),
+        bedrooms: Math.max(1, Number(editing.bedrooms) || 1),
+        bathrooms: Math.max(1, Number(editing.bathrooms) || 1),
+        beds: Math.max(1, Number(editing.beds) || 1),
+        has_pool: Boolean(editing.has_pool),
+        parties_allowed: Boolean(editing.parties_allowed),
+        amenities: (typeof editing.amenities === "string" ? editing.amenities : "")
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
         price_per_night: computeVillaNightlyPrice({
-          price_per_person: Number(editing.price_per_person),
-          capacity: Number(editing.capacity),
+          price_per_person: Math.max(0, Number(editing.price_per_person) || 0),
+          capacity: Math.max(1, Number(editing.capacity) || 1),
           pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
         }),
-        price_per_person: Number(editing.price_per_person),
-        cleaning_fee: Number(editing.cleaning_fee),
-        deposit: Number(editing.deposit),
+        price_per_person: Math.max(0, Number(editing.price_per_person) || 0),
+        cleaning_fee: Math.max(0, Number(editing.cleaning_fee) || 0),
+        deposit: Math.max(0, Number(editing.deposit) || 0),
         pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
-        is_active: editing.is_active,
+        is_active: Boolean(editing.is_active),
       };
       let { error } = editingId
         ? await supabase.from("villas").update(payload).eq("id", editingId)
@@ -374,13 +382,20 @@ function VillasPanel() {
   }
 
   async function remove(id: string) {
-    const { error } = await supabase.from("villas").delete().eq("id", id);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await supabase.from("blocked_dates").delete().eq("villa_id", id);
+      await supabase.from("date_overrides").delete().eq("villa_id", id);
+
+      const { error } = await supabase.from("villas").delete().eq("id", id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Villa supprimée");
+      queryClient.invalidateQueries({ queryKey: ["villas"] });
+    } catch (err: any) {
+      toast.error(err?.message || "Erreur lors de la suppression de la villa.");
     }
-    toast.success("Villa supprimée");
-    queryClient.invalidateQueries({ queryKey: ["villas"] });
   }
 
   const field = "w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm";

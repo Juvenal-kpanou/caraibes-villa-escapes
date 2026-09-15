@@ -3,7 +3,8 @@ import { amenityIcon, formatEUR, type Villa } from "@/lib/villas";
 import { computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
 
 export function VillaCard({ villa }: { villa: Villa }) {
-  const cover = villa.images[0];
+  const cover = Array.isArray(villa.images) ? villa.images[0] : undefined;
+  const amenities = Array.isArray(villa.amenities) ? villa.amenities : [];
   const nightlyPrice = computeVillaNightlyPrice(villa);
   const stdCapacity = getVillaStandardCapacity(villa);
 
@@ -57,7 +58,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
         </div>
 
         <div className="flex gap-2 text-primary">
-          {villa.amenities.slice(0, 5).map((a) => (
+          {amenities.slice(0, 5).map((a) => (
             <i key={a} className={amenityIcon(a)} title={a} aria-hidden="true" />
           ))}
         </div>
