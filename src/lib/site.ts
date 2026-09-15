@@ -10,7 +10,7 @@ export const CHECK_IN_TIME = "10h00";
 export const CHECK_OUT_TIME = "15h00";
 export const SCHEDULE_LABEL = `Arrivée à partir de ${CHECK_IN_TIME} / Départ avant ${CHECK_OUT_TIME}`;
 
-export const DEPOSIT_RATE = 0.3;
+export const DEPOSIT_RATE = 0.5;
 
 export type PaymentOption =
   | "full_with_deposit"
@@ -39,13 +39,13 @@ export const PAYMENT_OPTIONS: {
   {
     key: "partial_with_deposit",
     label: "Acompte avec caution",
-    description: "Vous réglez 30 % du séjour et la caution, le solde plus tard.",
+    description: "Vous réglez 50 % du séjour et la caution, le solde plus tard.",
     icon: "fa-solid fa-piggy-bank",
   },
   {
     key: "partial_no_deposit",
     label: "Acompte sans caution",
-    description: "Vous réglez seulement 30 % du séjour, le solde plus tard.",
+    description: "Vous réglez seulement 50 % du séjour, le solde plus tard.",
     icon: "fa-solid fa-hand-holding-dollar",
   },
 ];
