@@ -48,10 +48,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
   }
 
   return (
-    <article className="card-hover group min-w-0 overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+    <article className="card-hover group min-w-0 overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all duration-300 hover:shadow-lift flex flex-col md:flex-row">
       {/* Zone Carrousel d'images */}
       <div
-        className="relative aspect-[4/3] w-full overflow-hidden bg-muted"
+        className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted md:w-[42%] md:aspect-auto min-h-[260px]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -67,8 +67,8 @@ export function VillaCard({ villa }: { villa: Villa }) {
                     src={img}
                     alt={`Villa ${villa.name} à ${villa.location} — photo ${i + 1}`}
                     loading={i === 0 ? "eager" : "lazy"}
-                    width={1600}
-                    height={1000}
+                    width={1200}
+                    height={800}
                     className="size-full object-cover"
                   />
                 </div>
@@ -81,11 +81,26 @@ export function VillaCard({ villa }: { villa: Villa }) {
           )}
         </Link>
 
-        {/* Badge Disponibilité */}
-        <span className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-background/90 px-3 py-1 text-xs font-semibold text-palm shadow-soft">
-          <i className="fa-solid fa-circle-check mr-1.5" aria-hidden="true" />
-          Disponible
-        </span>
+        {/* Badge Disponibilité & Piscine */}
+        <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-1.5">
+          <span className="rounded-full bg-emerald-600/90 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white shadow-soft">
+            <i className="fa-solid fa-circle-check mr-1.5" aria-hidden="true" />
+            Disponible
+          </span>
+          {villa.has_pool && (
+            <span className="rounded-full bg-cyan-600/90 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white shadow-soft">
+              <i className="fa-solid fa-water-pool mr-1.5" aria-hidden="true" />
+              Piscine
+            </span>
+          )}
+        </div>
+
+        {/* Compteur de photos */}
+        {images.length > 1 && (
+          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
+            {currentSlide + 1} / {images.length}
+          </span>
+        )}
 
         {/* Flèches de navigation (Desktop) */}
         {images.length > 1 && (
@@ -94,7 +109,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
               type="button"
               onClick={prevSlide}
               aria-label="Photo précédente"
-              className="absolute left-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground opacity-0 shadow-soft transition-all duration-200 group-hover:opacity-100 hover:bg-background hover:scale-110"
+              className="absolute left-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 shadow-soft transition-all duration-200 group-hover:opacity-100 hover:bg-background hover:scale-110"
             >
               <i className="fa-solid fa-chevron-left text-xs" aria-hidden="true" />
             </button>
@@ -102,7 +117,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
               type="button"
               onClick={nextSlide}
               aria-label="Photo suivante"
-              className="absolute right-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground opacity-0 shadow-soft transition-all duration-200 group-hover:opacity-100 hover:bg-background hover:scale-110"
+              className="absolute right-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 shadow-soft transition-all duration-200 group-hover:opacity-100 hover:bg-background hover:scale-110"
             >
               <i className="fa-solid fa-chevron-right text-xs" aria-hidden="true" />
             </button>
@@ -124,54 +139,101 @@ export function VillaCard({ villa }: { villa: Villa }) {
         )}
       </div>
 
-      {/* Informations de la Villa */}
-      <div className="space-y-3 p-5 break-words">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground break-words">
-            <i className="fa-solid fa-location-dot mr-1.5 text-primary" aria-hidden="true" />
-            {villa.location}
-          </p>
-          <h3 className="mt-1 font-display text-xl break-words">{villa.name}</h3>
-        </div>
-
-        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-          <span>
-            <i className="fa-solid fa-users mr-1.5 text-primary" aria-hidden="true" />
-            {villa.capacity} pers.
-          </span>
-          <span>
-            <i className="fa-solid fa-bed mr-1.5 text-primary" aria-hidden="true" />
-            {villa.bedrooms} ch.
-          </span>
-          <span>
-            <i className="fa-solid fa-shower mr-1.5 text-primary" aria-hidden="true" />
-            {villa.bathrooms} sdb
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-primary">
-          {amenities.slice(0, 5).map((a) => (
-            <i key={a} className={amenityIcon(a)} title={a} aria-hidden="true" />
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-end justify-between gap-2 pt-1">
+      {/* Informations complètes de la Villa */}
+      <div className="flex w-full flex-col justify-between p-5 md:p-6 break-words">
+        <div className="space-y-3">
+          {/* Entête : Localisation + Nom */}
           <div>
-            <p className="font-display text-2xl">
+            <p className="text-xs uppercase tracking-[0.16em] font-semibold text-primary break-words">
+              <i className="fa-solid fa-location-dot mr-1.5" aria-hidden="true" />
+              {villa.location}, Guadeloupe
+            </p>
+            <h3 className="mt-1 font-display text-2xl font-bold text-foreground break-words">
+              <Link to="/villas/$villaId" params={{ villaId: villa.id }} className="hover:text-primary transition-colors">
+                {villa.name}
+              </Link>
+            </h3>
+          </div>
+
+          {/* Informations clés (Badges) */}
+          <div className="flex flex-wrap gap-2 text-xs font-medium text-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1 text-secondary-foreground">
+              <i className="fa-solid fa-users text-primary" aria-hidden="true" />
+              Jusqu'à {villa.capacity} personnes
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1 text-secondary-foreground">
+              <i className="fa-solid fa-bed text-primary" aria-hidden="true" />
+              {villa.bedrooms} chambre{villa.bedrooms > 1 ? "s" : ""}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1 text-secondary-foreground">
+              <i className="fa-solid fa-layer-group text-primary" aria-hidden="true" />
+              {villa.beds} lit{villa.beds > 1 ? "s" : ""}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/60 px-3 py-1 text-secondary-foreground">
+              <i className="fa-solid fa-shower text-primary" aria-hidden="true" />
+              {villa.bathrooms} sdb
+            </span>
+            {villa.parties_allowed && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/10 px-3 py-1 text-purple-800 dark:text-purple-300">
+                <i className="fa-solid fa-champagne-glasses text-purple-600" aria-hidden="true" />
+                Fêtes autorisées
+              </span>
+            )}
+          </div>
+
+          {/* Description complète directement visible */}
+          {villa.description && (
+            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line break-words line-clamp-3 md:line-clamp-none">
+              {villa.description}
+            </p>
+          )}
+
+          {/* Équipements clés */}
+          {amenities.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Équipements :</span>
+              <div className="flex flex-wrap gap-2 text-primary">
+                {amenities.slice(0, 6).map((a) => (
+                  <span key={a} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-foreground">
+                    <i className={amenityIcon(a)} aria-hidden="true" />
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Prix & Boutons d'action */}
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-border/60 pt-4">
+          <div>
+            <p className="font-display text-2xl font-bold text-foreground">
               {formatEUR(nightlyPrice)}
               <span className="text-sm font-normal text-muted-foreground"> / nuit</span>
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {formatEUR(villa.price_per_person)} / pers. ({stdCapacity} pers.)
+              {villa.deposit > 0 && ` · Caution : ${formatEUR(villa.deposit)}`}
             </p>
           </div>
-          <Link
-            to="/villas/$villaId"
-            params={{ villaId: villa.id }}
-            className="rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-all duration-300 hover:bg-primary hover:text-primary-foreground"
-          >
-            Découvrir
-          </Link>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/villas/$villaId"
+              params={{ villaId: villa.id }}
+              className="rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-xs font-semibold text-secondary-foreground transition-all duration-300 hover:bg-secondary hover:text-foreground"
+            >
+              Fiche complète
+            </Link>
+            <Link
+              to="/villas/$villaId"
+              params={{ villaId: villa.id }}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:brightness-110"
+            >
+              <span>Réserver cette villa</span>
+              <i className="fa-solid fa-arrow-right text-[10px]" aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </div>
     </article>

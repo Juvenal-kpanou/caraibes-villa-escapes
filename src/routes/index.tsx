@@ -167,7 +167,7 @@ function Index() {
           </div>
         </Reveal>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 flex flex-col gap-8 max-w-5xl mx-auto">
           {featured.map((villa, index) => (
             <Reveal key={villa.id} delay={index * 80}>
               <VillaCard villa={villa} />

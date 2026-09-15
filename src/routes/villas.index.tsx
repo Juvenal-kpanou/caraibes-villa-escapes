@@ -158,7 +158,7 @@ function VillasPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 flex flex-col gap-8 max-w-5xl mx-auto">
             {filtered.map((villa, i) => (
               <Reveal key={villa.id} delay={i * 80}>
                 <VillaCard villa={villa} />
