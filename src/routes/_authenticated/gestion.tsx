@@ -340,9 +340,23 @@ function VillasPanel() {
         pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
         is_active: editing.is_active,
       };
-      const { error } = editingId
+      let { error } = editingId
         ? await supabase.from("villas").update(payload).eq("id", editingId)
         : await supabase.from("villas").insert(payload);
+
+      // Fallback si la colonne pricing_threshold n'existe pas encore dans la base Supabase
+      if (
+        error &&
+        (error.message?.includes("pricing_threshold") ||
+          error.message?.includes("schema cache") ||
+          error.message?.includes("column"))
+      ) {
+        const { pricing_threshold, ...safePayload } = payload;
+        const retryResult = editingId
+          ? await supabase.from("villas").update(safePayload).eq("id", editingId)
+          : await supabase.from("villas").insert(safePayload);
+        error = retryResult.error;
+      }
       
       setSaving(false);
       if (error) {
