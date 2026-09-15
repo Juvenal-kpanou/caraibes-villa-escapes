@@ -16,7 +16,7 @@ import {
   villasQuery,
   type Villa,
 } from "@/lib/villas";
-import { computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
+import { computeTotal, computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/gestion")({
   ssr: false,
@@ -309,48 +309,54 @@ function VillasPanel() {
   async function save() {
     if (!editing) return;
     setSaving(true);
-    const thresholdVal = Number(editing.pricing_threshold);
-    const payload = {
-      name: editing.name.trim(),
-      location: editing.location.trim(),
-      description: editing.description.trim(),
-      images: editing.images
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      capacity: Number(editing.capacity),
-      bedrooms: Number(editing.bedrooms),
-      bathrooms: Number(editing.bathrooms),
-      beds: Number(editing.beds),
-      has_pool: editing.has_pool,
-      parties_allowed: editing.parties_allowed,
-      amenities: editing.amenities
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      price_per_night: computeVillaNightlyPrice({
-        price_per_person: Number(editing.price_per_person),
+    try {
+      const thresholdVal = Number(editing.pricing_threshold);
+      const payload = {
+        name: editing.name.trim(),
+        location: editing.location.trim(),
+        description: editing.description.trim(),
+        images: editing.images
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean),
         capacity: Number(editing.capacity),
+        bedrooms: Number(editing.bedrooms),
+        bathrooms: Number(editing.bathrooms),
+        beds: Number(editing.beds),
+        has_pool: editing.has_pool,
+        parties_allowed: editing.parties_allowed,
+        amenities: editing.amenities
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        price_per_night: computeVillaNightlyPrice({
+          price_per_person: Number(editing.price_per_person),
+          capacity: Number(editing.capacity),
+          pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
+        }),
+        price_per_person: Number(editing.price_per_person),
+        cleaning_fee: Number(editing.cleaning_fee),
+        deposit: Number(editing.deposit),
         pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
-      }),
-      price_per_person: Number(editing.price_per_person),
-      cleaning_fee: Number(editing.cleaning_fee),
-      deposit: Number(editing.deposit),
-      pricing_threshold: thresholdVal > 0 ? thresholdVal : null,
-      is_active: editing.is_active,
-    };
-    const { error } = editingId
-      ? await supabase.from("villas").update(payload).eq("id", editingId)
-      : await supabase.from("villas").insert(payload);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+        is_active: editing.is_active,
+      };
+      const { error } = editingId
+        ? await supabase.from("villas").update(payload).eq("id", editingId)
+        : await supabase.from("villas").insert(payload);
+      
+      setSaving(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success(editingId ? "Villa mise à jour !" : "Nouvelle villa créée avec succès !");
+      setEditing(null);
+      setEditingId(null);
+      queryClient.invalidateQueries({ queryKey: ["villas"] });
+    } catch (err: any) {
+      setSaving(false);
+      toast.error(err?.message || "Erreur lors de l'enregistrement de la villa.");
     }
-    toast.success("Villa enregistrée");
-    setEditing(null);
-    setEditingId(null);
-    queryClient.invalidateQueries({ queryKey: ["villas"] });
   }
 
   async function remove(id: string) {
@@ -407,7 +413,7 @@ function VillasPanel() {
             onChange={(e) => setEditing({ ...editing, description: e.target.value })}
           />
           <VillaPhotoUploader
-            images={editing.images.split("\n").map((s) => s.trim()).filter(Boolean)}
+            images={typeof editing.images === "string" ? editing.images.split("\n").map((s) => s.trim()).filter(Boolean) : Array.isArray(editing.images) ? editing.images : []}
             onChange={(newImages) => setEditing({ ...editing, images: newImages.join("\n") })}
           />
           <input
