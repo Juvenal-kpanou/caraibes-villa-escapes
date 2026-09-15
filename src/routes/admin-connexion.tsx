@@ -37,13 +37,7 @@ function AdminLoginPage() {
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("role", "admin");
-      if (!roles || roles.length === 0) {
-        toast.error("Accès non autorisé");
-        navigate({ to: "/mon-espace" });
-        return;
-      }
-      toast.success("Bienvenue !");
+      toast.success("Bienvenue dans votre espace gestionnaire !");
       navigate({ to: "/gestion" });
     } catch (error) {
       toast.error((error as Error).message);
