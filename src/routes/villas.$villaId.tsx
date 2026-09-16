@@ -585,10 +585,10 @@ function VillaDetailPage() {
                       <input
                         type="number"
                         min={1}
-                        max={villa.capacity}
+                        max={Math.max(villa.capacity * 2, (villa.pricing_threshold || 0) + 10, 30)}
                         value={form.guests}
                         onChange={(e) => setForm({ ...form, guests: Number(e.target.value) })}
-                        className="w-16 bg-transparent text-right"
+                        className="w-16 bg-transparent text-right outline-none font-semibold text-primary"
                       />
                     </label>
                   </div>

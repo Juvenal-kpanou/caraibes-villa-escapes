@@ -46,13 +46,26 @@ function eachDate(from: string, to: string) {
   return out;
 }
 
+async function getSupabaseServerClient() {
+  try {
+    if (process.env['SUPABASE_SERVICE_ROLE_KEY'] && process.env['SUPABASE_URL']) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      return supabaseAdmin;
+    }
+  } catch (e) {
+    // fallback to public client if service role key is missing
+  }
+  const { supabase } = await import("@/integrations/supabase/client");
+  return supabase;
+}
+
 /** Crée une demande de réservation (public) et renvoie la référence. */
 export const createReservation = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => createSchema.parse(data))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = await getSupabaseServerClient();
 
-    const { data: villa, error: villaError } = await supabaseAdmin
+    const { data: villa, error: villaError } = await db
       .from("villas")
       .select("*")
       .eq("id", data.villaId)
@@ -61,16 +74,23 @@ export const createReservation = createServerFn({ method: "POST" })
     if (villaError) throw new Error(villaError.message);
     if (!villa) throw new Error("Cette villa n'est plus disponible.");
 
-    if (data.guests > villa.capacity) {
+    const threshold = (villa as { pricing_threshold?: number | null }).pricing_threshold;
+    const maxAllowedGuests = Math.max(
+      villa.capacity,
+      threshold && threshold > 0 ? threshold * 3 : 0,
+      30
+    );
+
+    if (data.guests > maxAllowedGuests) {
       throw new Error(
-        `Cette villa accueille au maximum ${villa.capacity} personnes. Merci d'ajuster le nombre de voyageurs.`,
+        `Cette villa accueille au maximum ${maxAllowedGuests} personnes. Merci d'ajuster le nombre de voyageurs.`,
       );
     }
 
     const nights = eachDate(data.checkIn, data.checkOut).length;
     if (nights < 1) throw new Error("La date de départ doit être après la date d'arrivée.");
 
-    const unavailable = await fetchUnavailableDatesForVilla(supabaseAdmin, data.villaId);
+    const unavailable = await fetchUnavailableDatesForVilla(db, data.villaId);
     const taken = new Set(unavailable);
     if (eachDate(data.checkIn, data.checkOut).some((d) => taken.has(d))) {
       throw new Error("Certaines dates viennent d'être réservées ou ne sont plus disponibles. Merci de choisir d'autres dates.");
@@ -81,13 +101,12 @@ export const createReservation = createServerFn({ method: "POST" })
       throw new Error("Le tarif de cette villa n'est pas encore renseigné.");
     }
     const deposit = Number(villa.deposit);
-    const threshold = (villa as { pricing_threshold?: number | null }).pricing_threshold;
     const total = computeTotal(pricePerPerson, data.guests, nights, threshold);
     const dueNow = computeDueNow(data.paymentOption, total, deposit);
 
     let reference = makeReference();
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await db
         .from("reservations")
         .select("id")
         .eq("reference", reference)
@@ -119,7 +138,7 @@ export const createReservation = createServerFn({ method: "POST" })
       status: "pending",
     };
 
-    let { data: created, error: insertError } = await supabaseAdmin
+    let { data: created, error: insertError } = await db
       .from("reservations")
       .insert(insertPayload)
       .select(RESERVATION_FIELDS)
@@ -129,7 +148,7 @@ export const createReservation = createServerFn({ method: "POST" })
     if (insertError && (insertError.message?.includes("guest_address") || insertError.message?.includes("schema cache"))) {
       delete insertPayload.guest_address;
       const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
-      const retry = await supabaseAdmin
+      const retry = await db
         .from("reservations")
         .insert(insertPayload)
         .select(safeFields)
