@@ -3,14 +3,40 @@ import { Link } from "@tanstack/react-router";
 import { amenityIcon, formatEUR, type Villa } from "@/lib/villas";
 import { computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
 
+export function parseVillaImages(rawImages: unknown): string[] {
+  if (!rawImages) return [];
+  if (Array.isArray(rawImages)) {
+    return rawImages.filter((img) => typeof img === "string" && img.trim().length > 0);
+  }
+  if (typeof rawImages === "string") {
+    const trimmed = rawImages.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((img) => typeof img === "string" && img.trim().length > 0);
+        }
+      } catch (e) {
+        // Fallback to split
+      }
+    }
+    return trimmed.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
+  }
+  return [];
+}
+
 export function VillaCard({ villa }: { villa: Villa }) {
-  const images = Array.isArray(villa.images) && villa.images.length > 0 ? villa.images : [];
+  const images = parseVillaImages(villa.images);
   const amenities = Array.isArray(villa.amenities) ? villa.amenities : [];
   const nightlyPrice = computeVillaNightlyPrice(villa);
   const stdCapacity = getVillaStandardCapacity(villa);
 
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
   const touchStartX = useRef<number | null>(null);
+
+  const validImages = images.filter((_, idx) => !failedImages[idx]);
 
   function prevSlide(e: React.MouseEvent) {
     e.preventDefault();
@@ -37,10 +63,8 @@ export function VillaCard({ villa }: { villa: Villa }) {
 
     if (Math.abs(diff) > 40) {
       if (diff > 0) {
-        // Swipe gauche -> image suivante
         setCurrentSlide((prev) => (prev < images.length - 1 ? prev + 1 : 0));
       } else {
-        // Swipe droite -> image précédente
         setCurrentSlide((prev) => (prev > 0 ? prev - 1 : images.length - 1));
       }
     }
@@ -48,10 +72,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
   }
 
   return (
-    <article className="card-hover group min-w-0 overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all duration-300 hover:shadow-lift flex flex-col md:flex-row">
-      {/* Zone Carrousel d'images */}
+    <article className="card-hover group min-w-0 overflow-hidden rounded-3xl border border-border bg-card p-4 md:p-5 shadow-soft transition-all duration-300 hover:shadow-lift flex flex-col md:flex-row gap-5 md:gap-6 items-stretch">
+      {/* Zone Carrousel d'images avec cadre arrondi séparé */}
       <div
-        className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted md:w-[42%] md:aspect-auto min-h-[260px]"
+        className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl bg-muted md:w-[45%] md:aspect-[16/11] min-h-[220px]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -62,21 +86,30 @@ export function VillaCard({ villa }: { villa: Villa }) {
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
               {images.map((img, i) => (
-                <div key={`${img.slice(0, 30)}-${i}`} className="size-full shrink-0">
-                  <img
-                    src={img}
-                    alt={`Villa ${villa.name} à ${villa.location} — photo ${i + 1}`}
-                    loading={i === 0 ? "eager" : "lazy"}
-                    width={1200}
-                    height={800}
-                    className="size-full object-cover"
-                  />
+                <div key={`${img.slice(0, 30)}-${i}`} className="size-full shrink-0 relative bg-muted">
+                  {!failedImages[i] ? (
+                    <img
+                      src={img}
+                      alt={`Villa ${villa.name} à ${villa.location} — photo ${i + 1}`}
+                      loading={i === 0 ? "eager" : "lazy"}
+                      onError={() => setFailedImages((prev) => ({ ...prev, [i]: true }))}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-full flex-col items-center justify-center bg-sand/40 p-4 text-center text-muted-foreground">
+                      <i className="fa-solid fa-umbrella-beach text-3xl text-primary/60 mb-2" aria-hidden="true" />
+                      <span className="text-xs font-semibold">{villa.name}</span>
+                      <span className="text-[11px]">Photo non disponible</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex size-full items-center justify-center text-muted-foreground">
-              <i className="fa-solid fa-image text-3xl" aria-hidden="true" />
+            <div className="flex size-full flex-col items-center justify-center bg-sand/40 p-4 text-center text-muted-foreground">
+              <i className="fa-solid fa-umbrella-beach text-4xl text-primary/60 mb-2" aria-hidden="true" />
+              <span className="text-xs font-semibold text-foreground">{villa.name}</span>
+              <span className="text-[11px]">Photos à venir</span>
             </div>
           )}
         </Link>
@@ -102,14 +135,14 @@ export function VillaCard({ villa }: { villa: Villa }) {
           </span>
         )}
 
-        {/* Flèches de navigation (Desktop) */}
+        {/* Flèches de navigation (Desktop & Mobile) */}
         {images.length > 1 && (
           <>
             <button
               type="button"
               onClick={prevSlide}
               aria-label="Photo précédente"
-              className="absolute left-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 shadow-soft transition-all duration-200 group-hover:opacity-100 hover:bg-background hover:scale-110"
+              className="absolute left-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground opacity-90 shadow-soft transition-all duration-200 hover:bg-background hover:scale-110 active:scale-95 cursor-pointer"
             >
               <i className="fa-solid fa-chevron-left text-xs" aria-hidden="true" />
             </button>
@@ -117,7 +150,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
               type="button"
               onClick={nextSlide}
               aria-label="Photo suivante"
-              className="absolute right-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 shadow-soft transition-all duration-200 group-hover:opacity-100 hover:bg-background hover:scale-110"
+              className="absolute right-2.5 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground opacity-90 shadow-soft transition-all duration-200 hover:bg-background hover:scale-110 active:scale-95 cursor-pointer"
             >
               <i className="fa-solid fa-chevron-right text-xs" aria-hidden="true" />
             </button>
@@ -140,7 +173,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
       </div>
 
       {/* Informations complètes de la Villa */}
-      <div className="flex w-full flex-col justify-between p-5 md:p-6 break-words">
+      <div className="flex w-full flex-col justify-between py-1 break-words">
         <div className="space-y-3">
           {/* Entête : Localisation + Nom */}
           <div>
