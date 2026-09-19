@@ -48,10 +48,8 @@ function eachDate(from: string, to: string) {
 
 async function getSupabaseServerClient() {
   try {
-    if (process.env['SUPABASE_SERVICE_ROLE_KEY'] && process.env['SUPABASE_URL']) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      return supabaseAdmin;
-    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return supabaseAdmin;
   } catch (e) {
     // fallback to public client if service role key is missing
   }
@@ -101,7 +99,7 @@ export const createReservation = createServerFn({ method: "POST" })
       throw new Error("Le tarif de cette villa n'est pas encore renseigné.");
     }
     const deposit = Number(villa.deposit);
-    const total = computeTotal(pricePerPerson, data.guests, nights, threshold);
+    const total = computeTotal(pricePerPerson, data.guests, nights, threshold, villa.capacity);
     const dueNow = computeDueNow(data.paymentOption, total, deposit);
 
     let reference = makeReference();
@@ -157,7 +155,17 @@ export const createReservation = createServerFn({ method: "POST" })
       insertError = retry.error;
     }
 
-    if (insertError) throw new Error(insertError.message);
+    if (insertError) {
+      if (
+        insertError.message?.toLowerCase().includes("row-level security") ||
+        insertError.message?.toLowerCase().includes("rls")
+      ) {
+        throw new Error(
+          "Impossible d'enregistrer la réservation : la politique RLS Supabase de la table 'reservations' nécessite la clé SUPABASE_SERVICE_ROLE_KEY sur Vercel (ou d'autoriser les insertions publiques)."
+        );
+      }
+      throw new Error(insertError.message);
+    }
 
     return { reference, nights, total, dueNow, reservation: created };
   });

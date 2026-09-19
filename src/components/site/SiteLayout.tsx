@@ -19,8 +19,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
+    <div className="flex min-h-screen flex-col bg-background w-full max-w-full overflow-x-hidden min-w-0">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md w-full max-w-full">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3.5">
           <Link to="/" className="flex items-center gap-2.5">
             <span className="gradient-lagoon flex size-10 items-center justify-center rounded-2xl text-primary-foreground shadow-soft">
@@ -79,48 +79,48 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 w-full max-w-full overflow-x-hidden min-w-0">{children}</main>
 
-      <footer className="mt-20 border-t border-border bg-sand text-sand-foreground">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
+      <footer className="mt-20 border-t border-border bg-sand text-sand-foreground w-full max-w-full overflow-x-hidden min-w-0">
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-12 sm:grid-cols-2 lg:grid-cols-4 min-w-0">
+          <div className="min-w-0">
             <p className="font-display text-xl">{SITE_NAME}</p>
-            <p className="mt-2 text-sm text-sand-foreground/75">
+            <p className="mt-2 text-sm text-sand-foreground/75 leading-relaxed [overflow-wrap:break-word] [word-break:normal]">
               Des villas choisies avec soin en Guadeloupe, pour des vacances simples et
               chaleureuses.
             </p>
           </div>
-          <div className="text-sm">
+          <div className="text-sm min-w-0">
             <p className="mb-3 font-semibold">Navigation</p>
             {NAV.map((item) => (
-              <Link key={item.to} to={item.to} className="block py-1 hover:text-primary">
+              <Link key={item.to} to={item.to} className="block py-1 hover:text-primary transition-colors">
                 {item.label}
               </Link>
             ))}
           </div>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm min-w-0">
             <p className="mb-3 font-semibold">Contact</p>
-            <p>
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                <i className="fa-brands fa-whatsapp mr-2 text-palm" aria-hidden="true" />
-                {WHATSAPP_DISPLAY}
+            <p className="truncate">
+              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors inline-flex items-center">
+                <i className="fa-brands fa-whatsapp mr-2 text-palm shrink-0" aria-hidden="true" />
+                <span>{WHATSAPP_DISPLAY}</span>
               </a>
             </p>
-            <p>
-              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-primary">
-                <i className="fa-solid fa-envelope mr-2 text-primary" aria-hidden="true" />
-                {CONTACT_EMAIL}
+            <p className="truncate">
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-primary transition-colors inline-flex items-center max-w-full">
+                <i className="fa-solid fa-envelope mr-2 text-primary shrink-0" aria-hidden="true" />
+                <span className="truncate">{CONTACT_EMAIL}</span>
               </a>
             </p>
-            <p>
-              <i className="fa-solid fa-location-dot mr-2 text-primary" aria-hidden="true" />
-              Le Gosier, Guadeloupe
+            <p className="inline-flex items-center">
+              <i className="fa-solid fa-location-dot mr-2 text-primary shrink-0" aria-hidden="true" />
+              <span>Le Gosier, Guadeloupe</span>
             </p>
-            <p className="pt-1 text-xs text-sand-foreground/70">
+            <p className="pt-1 text-xs text-sand-foreground/70 leading-normal">
               Arrivée à partir de 10h00 / Départ avant 15h00
             </p>
           </div>
-          <div className="text-sm">
+          <div className="text-sm min-w-0">
             <p className="mb-3 font-semibold">Suivez-nous</p>
             <div className="flex items-center gap-2.5">
               <a
@@ -144,13 +144,13 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             </div>
             <Link
               to="/admin-connexion"
-              className="mt-5 inline-block text-xs text-sand-foreground/60 hover:text-primary"
+              className="mt-5 inline-block text-xs text-sand-foreground/60 hover:text-primary transition-colors"
             >
               Espace gestionnaire
             </Link>
           </div>
         </div>
-        <div className="border-t border-border/60 py-4 text-center text-xs text-sand-foreground/70">
+        <div className="border-t border-border/60 py-4 px-4 text-center text-xs text-sand-foreground/70 leading-normal [overflow-wrap:break-word] [word-break:normal]">
           © {new Date().getFullYear()} {SITE_NAME} — Paiement par virement bancaire uniquement.
         </div>
       </footer>

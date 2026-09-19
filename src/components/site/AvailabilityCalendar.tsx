@@ -75,26 +75,26 @@ export function AvailabilityCalendar({
   }
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-4 shadow-soft">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="w-full max-w-full rounded-3xl border border-border bg-card p-3 sm:p-4 shadow-soft overflow-hidden min-w-0">
+      <div className="mb-3 flex items-center justify-between gap-2 w-full max-w-full">
         <button
           type="button"
           aria-label="Mois précédent"
           onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
-          className="size-9 rounded-full border border-border transition-colors hover:bg-secondary"
+          className="size-9 shrink-0 flex items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary cursor-pointer"
         >
-          <i className="fa-solid fa-chevron-left" aria-hidden="true" />
+          <i className="fa-solid fa-chevron-left text-xs" aria-hidden="true" />
         </button>
-        <p className="font-display text-base capitalize">
+        <p className="font-display text-sm sm:text-base capitalize text-center truncate min-w-0">
           {new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(month)}
         </p>
         <button
           type="button"
           aria-label="Mois suivant"
           onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
-          className="size-9 rounded-full border border-border transition-colors hover:bg-secondary"
+          className="size-9 shrink-0 flex items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary cursor-pointer"
         >
-          <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+          <i className="fa-solid fa-chevron-right text-xs" aria-hidden="true" />
         </button>
       </div>
 
@@ -109,10 +109,9 @@ export function AvailabilityCalendar({
           if (!day) return <span key={`empty-${index}`} />;
           const iso = toISODate(day);
           const isTaken = taken.has(iso);
-          const isPast = iso < today;
           const isStart = iso === checkIn;
           const isEnd = iso === checkOut;
-          const disabled = onToggleDate ? isPast : isTaken || isPast;
+          const disabled = onToggleDate ? false : isTaken;
 
           return (
             <button
@@ -121,10 +120,10 @@ export function AvailabilityCalendar({
               disabled={disabled}
               onClick={() => handleClick(iso)}
               className={cn(
-                "relative aspect-square rounded-xl text-sm transition-all duration-200",
+                "relative aspect-square w-full min-w-0 flex items-center justify-center p-0 rounded-xl text-xs sm:text-sm transition-all duration-200",
                 disabled &&
                   "cursor-not-allowed bg-muted text-muted-foreground/50 line-through decoration-1",
-                !disabled && "hover:scale-105 hover:bg-secondary",
+                !disabled && "hover:scale-105 hover:bg-secondary cursor-pointer",
                 inRange(iso) && "bg-primary/15 text-foreground",
                 (isStart || isEnd) &&
                   "gradient-lagoon scale-105 font-semibold text-primary-foreground shadow-soft",

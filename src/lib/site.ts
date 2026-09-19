@@ -78,11 +78,17 @@ export function computePricingBreakdown(
   guests: number,
   nights: number,
   threshold?: number | null,
+  capacity?: number | null,
 ): PricingBreakdown {
   const p = Number(pricePerPerson) || 0;
   const g = Math.max(0, Number(guests) || 0);
   const n = Math.max(0, Number(nights) || 0);
-  const t = threshold != null && Number(threshold) > 0 ? Number(threshold) : 0;
+  const t =
+    threshold != null && Number(threshold) > 0
+      ? Number(threshold)
+      : capacity != null && Number(capacity) > 0
+      ? Number(capacity)
+      : 0;
 
   const hasSurcharge = t > 0 && g > t;
 
@@ -92,8 +98,8 @@ export function computePricingBreakdown(
       standardGuests: g,
       surchargedGuests: 0,
       standardPricePerPerson: p,
-      surchargedPricePerPerson: p * 1.15,
-      standardTotal: total,
+      surchargedPricePerPerson: Math.round(p * 1.15 * 100) / 100,
+      standardTotal: Math.round(total * 100) / 100,
       surchargedTotal: 0,
       total: Math.round(total * 100) / 100,
       hasSurcharge: false,
@@ -102,7 +108,7 @@ export function computePricingBreakdown(
 
   const standardGuests = Math.min(g, t);
   const surchargedGuests = Math.max(0, g - t);
-  const surchargedPricePerPerson = p * 1.15;
+  const surchargedPricePerPerson = Math.round(p * 1.15 * 100) / 100;
 
   const standardTotal = standardGuests * n * p;
   const surchargedTotal = surchargedGuests * n * surchargedPricePerPerson;
@@ -120,14 +126,15 @@ export function computePricingBreakdown(
   };
 }
 
-/** Prix total = tarif par personne et par nuit × personnes × nuits (avec majoration de 15% au-delà du seuil si défini) */
+/** Prix total = tarif par personne et par nuit × personnes × nuits (avec majoration de 15% au-delà du seuil/capacité) */
 export function computeTotal(
   pricePerPerson: number,
   guests: number,
   nights: number,
   threshold?: number | null,
+  capacity?: number | null,
 ) {
-  return computePricingBreakdown(pricePerPerson, guests, nights, threshold).total;
+  return computePricingBreakdown(pricePerPerson, guests, nights, threshold, capacity).total;
 }
 
 /** Capacité standard pour le calcul du prix nuitée indicatif (pricing_threshold si défini et > 0, sinon capacity) */

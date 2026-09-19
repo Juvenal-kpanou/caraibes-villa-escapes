@@ -159,6 +159,7 @@ function VillaDetailPage() {
     form.guests,
     nights,
     villa.pricing_threshold,
+    villa.capacity,
   );
   const total = breakdown.total;
   const dueNow = computeDueNow(paymentOption, total, Number(villa.deposit));
@@ -166,7 +167,7 @@ function VillaDetailPage() {
 
   return (
     <SiteLayout>
-      <section className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14 overflow-x-hidden min-w-0">
         <Link
           to="/villas"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
@@ -326,9 +327,9 @@ function VillaDetailPage() {
               {SCHEDULE_LABEL}
             </p>
 
-            <div>
+            <div className="min-w-0">
               <h2 className="font-display text-2xl">La villa</h2>
-              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground">
+              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground break-words break-all [overflow-wrap:anywhere] min-w-0">
                 {villa.description}
               </p>
             </div>
