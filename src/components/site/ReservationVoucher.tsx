@@ -96,8 +96,8 @@ export function ReservationVoucher({
           </p>
           <p>
             <span className="text-muted-foreground">Séjour : </span>
-            {reservation.guests} personne{reservation.guests > 1 ? "s" : ""} ·{" "}
-            {reservation.nights} nuit{reservation.nights > 1 ? "s" : ""}
+            {reservation.guests} personne{reservation.guests > 1 ? "s" : ""} · {reservation.nights}{" "}
+            nuit{reservation.nights > 1 ? "s" : ""}
           </p>
           <p className="text-xs text-muted-foreground">{SCHEDULE_LABEL}</p>
         </div>

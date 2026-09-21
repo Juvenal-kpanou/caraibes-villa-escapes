@@ -93,7 +93,11 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div className="text-sm min-w-0">
             <p className="mb-3 font-semibold">Navigation</p>
             {NAV.map((item) => (
-              <Link key={item.to} to={item.to} className="block py-1 hover:text-primary transition-colors">
+              <Link
+                key={item.to}
+                to={item.to}
+                className="block py-1 hover:text-primary transition-colors"
+              >
                 {item.label}
               </Link>
             ))}
@@ -101,19 +105,30 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div className="space-y-2 text-sm min-w-0">
             <p className="mb-3 font-semibold">Contact</p>
             <p className="truncate">
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors inline-flex items-center">
+              <a
+                href={WHATSAPP_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors inline-flex items-center"
+              >
                 <i className="fa-brands fa-whatsapp mr-2 text-palm shrink-0" aria-hidden="true" />
                 <span>{WHATSAPP_DISPLAY}</span>
               </a>
             </p>
             <p className="truncate">
-              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-primary transition-colors inline-flex items-center max-w-full">
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="hover:text-primary transition-colors inline-flex items-center max-w-full"
+              >
                 <i className="fa-solid fa-envelope mr-2 text-primary shrink-0" aria-hidden="true" />
                 <span className="truncate">{CONTACT_EMAIL}</span>
               </a>
             </p>
             <p className="inline-flex items-center">
-              <i className="fa-solid fa-location-dot mr-2 text-primary shrink-0" aria-hidden="true" />
+              <i
+                className="fa-solid fa-location-dot mr-2 text-primary shrink-0"
+                aria-hidden="true"
+              />
               <span>Le Gosier, Guadeloupe</span>
             </p>
             <p className="pt-1 text-xs text-sand-foreground/70 leading-normal">

@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/gestion")({
         .eq("role", "admin");
 
       // If user_roles check passes or table is open, allow access
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err && typeof err === "object" && "to" in err) {
         throw err;
       }
@@ -185,8 +185,24 @@ function ReservationsPanel() {
 
   return (
     <div className="space-y-4">
-      {data.map((row: Record<string, any>) => {
-        const r = row as any;
+      {data.map((row: Record<string, unknown>) => {
+        const r = row as Record<string, unknown> & {
+          id: string;
+          reference: string;
+          status: string;
+          created_at: string;
+          check_in: string;
+          check_out: string;
+          nights: number;
+          guests: number;
+          total_amount: number;
+          deposit: number;
+          guest_name: string;
+          guest_email: string;
+          guest_phone: string;
+          guest_address?: string;
+          villas?: { name: string; location: string } | null;
+        };
         const createdAtTime = new Date(r.created_at).getTime();
         const hoursElapsed = (Date.now() - createdAtTime) / (3600 * 1000);
         const hoursRemaining = Math.max(0, Math.ceil(72 - hoursElapsed));
@@ -366,7 +382,7 @@ function VillasPanel() {
           : await supabase.from("villas").insert(safePayload);
         error = retryResult.error;
       }
-      
+
       setSaving(false);
       if (error) {
         toast.error(error.message);
@@ -376,9 +392,9 @@ function VillasPanel() {
       setEditing(null);
       setEditingId(null);
       queryClient.invalidateQueries({ queryKey: ["villas"] });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSaving(false);
-      toast.error(err?.message || "Erreur lors de l'enregistrement de la villa.");
+      toast.error((err as Error)?.message || "Erreur lors de l'enregistrement de la villa.");
     }
   }
 
@@ -394,8 +410,8 @@ function VillasPanel() {
       }
       toast.success("Villa supprimée");
       queryClient.invalidateQueries({ queryKey: ["villas"] });
-    } catch (err: any) {
-      toast.error(err?.message || "Erreur lors de la suppression de la villa.");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "Erreur lors de la suppression de la villa.");
     }
   }
 
@@ -443,7 +459,16 @@ function VillasPanel() {
             onChange={(e) => setEditing({ ...editing, description: e.target.value })}
           />
           <VillaPhotoUploader
-            images={typeof editing.images === "string" ? editing.images.split("\n").map((s) => s.trim()).filter(Boolean) : Array.isArray(editing.images) ? editing.images : []}
+            images={
+              typeof editing.images === "string"
+                ? editing.images
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                : Array.isArray(editing.images)
+                  ? editing.images
+                  : []
+            }
             onChange={(newImages) => setEditing({ ...editing, images: newImages.join("\n") })}
           />
           <input
@@ -524,7 +549,11 @@ function VillasPanel() {
               const cap = Number(editing.capacity) || 1;
               const thresh = Number(editing.pricing_threshold) || 0;
               const stdCap = getVillaStandardCapacity({ capacity: cap, pricing_threshold: thresh });
-              const nightlyPrice = computeVillaNightlyPrice({ price_per_person: p, capacity: cap, pricing_threshold: thresh });
+              const nightlyPrice = computeVillaNightlyPrice({
+                price_per_person: p,
+                capacity: cap,
+                pricing_threshold: thresh,
+              });
               const fullCapPrice = computeTotal(p, cap, 1, thresh);
               const hasExtraSurcharge = thresh > 0 && cap > thresh;
 
@@ -540,7 +569,8 @@ function VillasPanel() {
                     ({formatEUR(p)} / pers. / nuit · base {stdCap} pers.)
                     {hasExtraSurcharge && (
                       <span className="block text-[10px] text-amber-700 font-medium">
-                        Jusqu'à {formatEUR(fullCapPrice)}/nuit à {cap} pers. (+15% au-delà de {thresh} pers.)
+                        Jusqu'à {formatEUR(fullCapPrice)}/nuit à {cap} pers. (+15% au-delà de{" "}
+                        {thresh} pers.)
                       </span>
                     )}
                   </span>
@@ -626,8 +656,8 @@ function VillasPanel() {
             <div>
               <p className="font-display text-lg">{v.name}</p>
               <p className="text-sm text-muted-foreground">
-                {v.location} · {formatEUR(computeVillaNightlyPrice(v))} / nuit ({formatEUR(v.price_per_person)} / pers.) ·{" "}
-                {v.is_active ? "visible" : "masquée"}
+                {v.location} · {formatEUR(computeVillaNightlyPrice(v))} / nuit (
+                {formatEUR(v.price_per_person)} / pers.) · {v.is_active ? "visible" : "masquée"}
               </p>
             </div>
             <div className="flex gap-2">
@@ -676,13 +706,17 @@ function BlockedDatesPanel() {
       if (manual.error) throw manual.error;
       if (overrides.error) throw overrides.error;
       if (unavailable.error) throw unavailable.error;
-      const norm = (rows: any[] | null) =>
-        (rows ?? []).map((r: any) => ({ id: r.id as string, date: String(r.date).slice(0, 10) }));
+      const norm = (rows: Array<Record<string, unknown>> | null) =>
+        (rows ?? []).map((r) => ({ id: String(r["id"]), date: String(r["date"]).slice(0, 10) }));
       return {
-        manual: norm(manual.data as any[]),
-        overrides: norm(overrides.data as any[]),
-        unavailable: ((unavailable.data as any[]) ?? []).map((d: any) =>
-          String(typeof d === "string" ? d : d.get_unavailable_dates ?? d.date).slice(0, 10),
+        manual: norm(manual.data as Array<Record<string, unknown>>),
+        overrides: norm(overrides.data as Array<Record<string, unknown>>),
+        unavailable: ((unavailable.data as Array<Record<string, unknown> | string>) ?? []).map(
+          (d) =>
+            String(typeof d === "string" ? d : (d["get_unavailable_dates"] ?? d["date"])).slice(
+              0,
+              10,
+            ),
         ),
       };
     },
@@ -693,18 +727,38 @@ function BlockedDatesPanel() {
   const unavailable = state?.unavailable ?? [];
 
   async function toggle(date: string) {
-    const manualRow = manual.find((b) => b.date === date);
-    const overrideRow = overrides.find((b) => b.date === date);
+    const normDate = date.slice(0, 10);
+    const manualRow = manual.find((b) => b.date === normDate || b.date.startsWith(normDate));
+    const overrideRow = overrides.find((b) => b.date === normDate || b.date.startsWith(normDate));
     let error = null;
+
     if (manualRow) {
       ({ error } = await supabase.from("blocked_dates").delete().eq("id", manualRow.id));
-    } else if (unavailable.includes(date)) {
-      // date bloquée par une réservation : on la libère via une dérogation
-      ({ error } = await supabase.from("date_overrides").insert({ villa_id: selected, date }));
     } else if (overrideRow) {
       ({ error } = await supabase.from("date_overrides").delete().eq("id", overrideRow.id));
+    } else if (unavailable.includes(normDate)) {
+      // date bloquée par une réservation : on la libère via une dérogation
+      const res = await supabase
+        .from("date_overrides")
+        .upsert({ villa_id: selected, date: normDate }, { onConflict: "villa_id,date" });
+      error = res.error;
     } else {
-      ({ error } = await supabase.from("blocked_dates").insert({ villa_id: selected, date }));
+      const res = await supabase
+        .from("blocked_dates")
+        .insert({ villa_id: selected, date: normDate });
+      if (res.error) {
+        // En cas de conflit (la date existait déjà en BDD mais n'était pas synchronisée localement)
+        if (res.error.code === "23505" || res.error.message?.includes("unique constraint")) {
+          const delRes = await supabase
+            .from("blocked_dates")
+            .delete()
+            .eq("villa_id", selected)
+            .eq("date", normDate);
+          error = delRes.error;
+        } else {
+          error = res.error;
+        }
+      }
     }
     if (error) {
       toast.error(error.message);
@@ -714,8 +768,7 @@ function BlockedDatesPanel() {
     queryClient.invalidateQueries({ queryKey: ["unavailable", selected] });
   }
 
-  if (!villas.length)
-    return <p className="text-muted-foreground">Ajoutez d'abord une villa.</p>;
+  if (!villas.length) return <p className="text-muted-foreground">Ajoutez d'abord une villa.</p>;
 
   return (
     <div className="space-y-4">
@@ -836,9 +889,7 @@ function RefundsPanel() {
   async function decide(id: string, status: "refunded" | "refund_rejected") {
     try {
       await updateStatus({ data: { id, status } });
-      toast.success(
-        status === "refunded" ? "Remboursement effectué" : "Demande rejetée",
-      );
+      toast.success(status === "refunded" ? "Remboursement effectué" : "Demande rejetée");
       queryClient.invalidateQueries({ queryKey: ["admin-refunds"] });
       queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
     } catch (error) {
@@ -852,8 +903,21 @@ function RefundsPanel() {
 
   return (
     <div className="space-y-4">
-      {data.map((row: Record<string, any>) => {
-        const r = row as any;
+      {data.map((row: Record<string, unknown>) => {
+        const r = row as Record<string, unknown> & {
+          id: string;
+          reference: string;
+          status: string;
+          check_in: string;
+          check_out: string;
+          amount_paid: number;
+          guest_name: string;
+          guest_email: string;
+          refund_holder?: string;
+          refund_iban?: string;
+          refund_bic?: string;
+          villas?: { name: string; location: string } | null;
+        };
         return (
           <article
             key={r.id}

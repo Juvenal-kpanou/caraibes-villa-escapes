@@ -90,11 +90,13 @@ function VillaDetailPage() {
   }
 
   function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
+    if (e.touches[0]) {
+      touchStartX.current = e.touches[0].clientX;
+    }
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || !images.length) return;
+    if (touchStartX.current === null || !images.length || !e.changedTouches[0]) return;
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX;
 
@@ -115,7 +117,9 @@ function VillaDetailPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", guests: 2 });
   const [paymentOption, setPaymentOption] = useState<PaymentOption>("full_with_deposit");
   const [reference, setReference] = useState<string | null>(null);
-  const [voucher, setVoucher] = useState<React.ComponentProps<typeof ReservationVoucher>["reservation"] | null>(null);
+  const [voucher, setVoucher] = useState<
+    React.ComponentProps<typeof ReservationVoucher>["reservation"] | null
+  >(null);
 
   const send = useServerFn(createReservation);
   const mutation = useMutation({
@@ -123,7 +127,9 @@ function VillaDetailPage() {
     onSuccess: (res: { reference: string; reservation?: unknown }) => {
       setReference(res.reference);
       if (res.reservation) {
-        setVoucher(res.reservation as React.ComponentProps<typeof ReservationVoucher>["reservation"]);
+        setVoucher(
+          res.reservation as React.ComponentProps<typeof ReservationVoucher>["reservation"],
+        );
       }
       toast.success("Demande envoyée !");
     },
@@ -132,7 +138,10 @@ function VillaDetailPage() {
 
   const nights = useMemo(() => {
     if (!range.checkIn || !range.checkOut) return 0;
-    return nightsBetween(new Date(`${range.checkIn}T12:00:00`), new Date(`${range.checkOut}T12:00:00`));
+    return nightsBetween(
+      new Date(`${range.checkIn}T12:00:00`),
+      new Date(`${range.checkOut}T12:00:00`),
+    );
   }, [range]);
 
   if (!villa || !villa.is_active) {
@@ -265,7 +274,9 @@ function VillaDetailPage() {
                   <span
                     key={i}
                     className={`rounded-full transition-all duration-300 ${
-                      i === currentSlide ? "h-2 w-5 bg-white shadow-soft" : "h-1.5 w-1.5 bg-white/60"
+                      i === currentSlide
+                        ? "h-2 w-5 bg-white shadow-soft"
+                        : "h-1.5 w-1.5 bg-white/60"
                     }`}
                   />
                 ))}
@@ -283,7 +294,9 @@ function VillaDetailPage() {
                   onClick={() => setCurrentSlide(i)}
                   aria-label={`Afficher la photo ${i + 1}`}
                   className={`relative aspect-[4/3] h-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
-                    i === currentSlide ? "border-primary ring-2 ring-primary/30" : "border-transparent opacity-70 hover:opacity-100"
+                    i === currentSlide
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
                   <img src={img} alt="" loading="lazy" className="size-full object-cover" />
@@ -317,7 +330,10 @@ function VillaDetailPage() {
                 {villa.has_pool ? "Piscine" : "Sans piscine"}
               </span>
               <span>
-                <i className="fa-solid fa-champagne-glasses mr-1.5 text-primary" aria-hidden="true" />
+                <i
+                  className="fa-solid fa-champagne-glasses mr-1.5 text-primary"
+                  aria-hidden="true"
+                />
                 {villa.parties_allowed ? "Fêtes autorisées" : "Fêtes non autorisées"}
               </span>
             </div>
@@ -339,7 +355,10 @@ function VillaDetailPage() {
                 <h2 className="font-display text-2xl">Équipements</h2>
                 <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                   {villa.amenities.map((a) => (
-                    <li key={a} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+                    <li
+                      key={a}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+                    >
                       <i className={`${amenityIcon(a)} text-primary`} aria-hidden="true" />
                       <span className="text-sm capitalize">{a}</span>
                     </li>
@@ -371,9 +390,7 @@ function VillaDetailPage() {
                   <div className="text-center">
                     <i className="fa-solid fa-circle-check text-3xl text-palm" aria-hidden="true" />
                     <h2 className="mt-3 font-display text-2xl">Demande enregistrée</h2>
-                    <p className="mt-2 text-muted-foreground">
-                      Votre référence de dossier :
-                    </p>
+                    <p className="mt-2 text-muted-foreground">Votre référence de dossier :</p>
                     <p className="mt-1 font-display text-2xl tracking-wider text-primary">
                       {reference}
                     </p>
@@ -382,7 +399,9 @@ function VillaDetailPage() {
                   {bank && (
                     <div className="rounded-2xl bg-secondary/50 p-4">
                       <p className="font-semibold">Coordonnées pour le virement</p>
-                      <p className="mt-2 text-muted-foreground">Bénéficiaire : {bank.account_holder}</p>
+                      <p className="mt-2 text-muted-foreground">
+                        Bénéficiaire : {bank.account_holder}
+                      </p>
                       <p className="text-muted-foreground">Banque : {bank.bank_name}</p>
                       <p className="text-muted-foreground">IBAN : {bank.iban}</p>
                       <p className="text-muted-foreground">BIC : {bank.bic}</p>
@@ -404,7 +423,9 @@ function VillaDetailPage() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!range.checkIn || !range.checkOut || nights < 1) {
-                      toast.error("Veuillez choisir vos dates d'arrivée et de départ dans le calendrier.");
+                      toast.error(
+                        "Veuillez choisir vos dates d'arrivée et de départ dans le calendrier.",
+                      );
                       return;
                     }
                     if (!form.name.trim()) {
@@ -442,13 +463,11 @@ function VillaDetailPage() {
                   <div>
                     <p className="font-display text-2xl">
                       {formatEUR(computeVillaNightlyPrice(villa))}
-                      <span className="text-sm font-normal text-muted-foreground">
-                        {" "}
-                        / nuit
-                      </span>
+                      <span className="text-sm font-normal text-muted-foreground"> / nuit</span>
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatEUR(villa.price_per_person)} / pers. / nuit (base {getVillaStandardCapacity(villa)} pers.)
+                      {formatEUR(villa.price_per_person)} / pers. / nuit (base{" "}
+                      {getVillaStandardCapacity(villa)} pers.)
                       {villa.pricing_threshold && villa.pricing_threshold > 0
                         ? ` · majoration +15% au-delà de ${villa.pricing_threshold} pers.`
                         : ""}
@@ -501,13 +520,17 @@ function VillaDetailPage() {
                           <div className="mt-2 space-y-1 text-xs text-muted-foreground border-b border-border/50 pb-2">
                             <div className="flex justify-between">
                               <span>
-                                {breakdown.standardGuests} pers. × {nights} nuit{nights > 1 ? "s" : ""} × {formatEUR(breakdown.standardPricePerPerson)}
+                                {breakdown.standardGuests} pers. × {nights} nuit
+                                {nights > 1 ? "s" : ""} ×{" "}
+                                {formatEUR(breakdown.standardPricePerPerson)}
                               </span>
                               <span>{formatEUR(breakdown.standardTotal)}</span>
                             </div>
                             <div className="flex justify-between text-amber-800 font-medium">
                               <span>
-                                + {breakdown.surchargedGuests} pers. × {nights} nuit{nights > 1 ? "s" : ""} × {formatEUR(breakdown.surchargedPricePerPerson)} (+15%)
+                                + {breakdown.surchargedGuests} pers. × {nights} nuit
+                                {nights > 1 ? "s" : ""} ×{" "}
+                                {formatEUR(breakdown.surchargedPricePerPerson)} (+15%)
                               </span>
                               <span>{formatEUR(breakdown.surchargedTotal)}</span>
                             </div>
@@ -548,7 +571,6 @@ function VillaDetailPage() {
                       </p>
                     )}
                   </div>
-
 
                   <div className="space-y-3">
                     <input

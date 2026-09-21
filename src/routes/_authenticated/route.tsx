@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
         throw redirect({ to: "/admin-connexion" });
       }
       return { user: data.user };
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err && typeof err === "object" && "to" in err) {
         throw err;
       }

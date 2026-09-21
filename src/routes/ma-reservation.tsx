@@ -66,13 +66,12 @@ function MyReservationPage() {
       mutation.mutate({ reference: reference.trim().toUpperCase(), email: email.trim() }),
   });
 
-
-
   const result = mutation.data;
   const reservation = result?.reservation as
-    | (Record<string, unknown> & {
+    | {
         reference: string;
         guest_name: string;
+        guest_address?: string | null;
         guests: number;
         check_in: string;
         check_out: string;
@@ -84,7 +83,7 @@ function MyReservationPage() {
         status: string;
         created_at: string;
         villas: { name: string; location: string; images: string[] } | null;
-      })
+      }
     | null
     | undefined;
 
@@ -93,7 +92,9 @@ function MyReservationPage() {
       <section className="bg-gradient-to-b from-secondary/40 to-background">
         <div className="mx-auto w-full max-w-3xl px-4 py-14 text-center md:py-20">
           <Reveal>
-            <p className="text-xs uppercase tracking-[0.24em] text-primary">Suivi de dossier (Sans compte)</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-primary">
+              Suivi de dossier (Sans compte)
+            </p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl">Suivre ma réservation</h1>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
               Saisissez la référence reçue lors de votre demande (format ANT-XXXXXX) et l'adresse
@@ -110,7 +111,8 @@ function MyReservationPage() {
               e.preventDefault();
               const ref = reference.trim().toUpperCase();
               const mail = email.trim();
-              if (ref.length >= 4 && mail.includes("@")) mutation.mutate({ reference: ref, email: mail });
+              if (ref.length >= 4 && mail.includes("@"))
+                mutation.mutate({ reference: ref, email: mail });
             }}
             className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 shadow-soft"
           >
@@ -157,7 +159,6 @@ function MyReservationPage() {
           </form>
         </Reveal>
 
-
         {mutation.isError && (
           <p className="mt-5 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">
             Une erreur est survenue lors de la recherche. Merci de réessayer.
@@ -194,9 +195,7 @@ function MyReservationPage() {
 
               <div className="grid gap-6 p-6 md:grid-cols-2">
                 <div>
-                  <h2 className="font-display text-xl">
-                    {reservation.villas?.name ?? "Villa"}
-                  </h2>
+                  <h2 className="font-display text-xl">{reservation.villas?.name ?? "Villa"}</h2>
                   {reservation.villas?.location && (
                     <p className="mt-1 text-sm text-muted-foreground">
                       <i
@@ -223,11 +222,11 @@ function MyReservationPage() {
                       <dt className="text-muted-foreground">Titulaire</dt>
                       <dd className="font-semibold">{reservation.guest_name}</dd>
                     </div>
-                    {(reservation as any).guest_address && (
+                    {Boolean(reservation.guest_address) && (
                       <div className="flex justify-between gap-4">
                         <dt className="text-muted-foreground">Adresse</dt>
                         <dd className="font-semibold text-right break-words max-w-[220px]">
-                          {(reservation as any).guest_address}
+                          {reservation.guest_address}
                         </dd>
                       </div>
                     )}
@@ -334,7 +333,6 @@ function MyReservationPage() {
                         iban: bankForm.iban,
                         bic: bankForm.bic,
                       });
-
                     }}
                   >
                     <input
@@ -363,9 +361,7 @@ function MyReservationPage() {
                       disabled={refundMutation.isPending}
                       className="gradient-lagoon w-full rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft disabled:opacity-50"
                     >
-                      {refundMutation.isPending
-                        ? "Envoi en cours..."
-                        : "Confirmer l'annulation"}
+                      {refundMutation.isPending ? "Envoi en cours..." : "Confirmer l'annulation"}
                     </button>
                     {refundMutation.isError && (
                       <p className="text-sm text-destructive">
@@ -384,9 +380,10 @@ function MyReservationPage() {
                   Demande enregistrée — Vos dates sont bloquées temporairement (72h)
                 </p>
                 <p className="mt-2 text-amber-800">
-                  Vos dates sont réservées et grisées dans le calendrier public pour éviter toute réservation simultanée. 
-                  Pour valider définitivement votre séjour, merci d'effectuer le virement bancaire ci-dessus. 
-                  Sans validation ou virement sous 72h, les dates seront automatiquement libérées.
+                  Vos dates sont réservées et grisées dans le calendrier public pour éviter toute
+                  réservation simultanée. Pour valider définitivement votre séjour, merci
+                  d'effectuer le virement bancaire ci-dessus. Sans validation ou virement sous 72h,
+                  les dates seront automatiquement libérées.
                 </p>
               </div>
             )}
@@ -398,8 +395,9 @@ function MyReservationPage() {
                   Demande non aboutie
                 </p>
                 <p className="mt-2">
-                  Votre demande de réservation n'a pas pu être finalisée. Les dates du séjour ont été libérées dans le calendrier public.
-                  Si vous souhaitez effectuer un nouveau séjour, n'hésitez pas à choisir de nouvelles dates.
+                  Votre demande de réservation n'a pas pu être finalisée. Les dates du séjour ont
+                  été libérées dans le calendrier public. Si vous souhaitez effectuer un nouveau
+                  séjour, n'hésitez pas à choisir de nouvelles dates.
                 </p>
               </div>
             )}
@@ -411,7 +409,8 @@ function MyReservationPage() {
                   Demande expirée
                 </p>
                 <p className="mt-2">
-                  Le délai de 72h pour la validation du virement est dépassé. Les dates du séjour ont été automatiquement libérées dans le calendrier public.
+                  Le délai de 72h pour la validation du virement est dépassé. Les dates du séjour
+                  ont été automatiquement libérées dans le calendrier public.
                 </p>
               </div>
             )}

@@ -38,9 +38,7 @@ export function VillaPhotoUploader({ images, onChange }: VillaPhotoUploaderProps
           .upload(filePath, file, { cacheControl: "3600", upsert: true });
 
         if (!error && data) {
-          const { data: pubData } = supabase.storage
-            .from("villa-images")
-            .getPublicUrl(filePath);
+          const { data: pubData } = supabase.storage.from("villa-images").getPublicUrl(filePath);
           if (pubData?.publicUrl) {
             newUrls.push(pubData.publicUrl);
             continue;
@@ -135,7 +133,9 @@ export function VillaPhotoUploader({ images, onChange }: VillaPhotoUploaderProps
         <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm font-semibold text-primary animate-pulse">
           <i className="fa-solid fa-spinner fa-spin text-xl" aria-hidden="true" />
           <div className="flex-1">
-            <p>Upload des photos en cours ({progress?.current} / {progress?.total})...</p>
+            <p>
+              Upload des photos en cours ({progress?.current} / {progress?.total})...
+            </p>
             <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
               <div
                 className="h-full bg-primary transition-all duration-300"
@@ -152,7 +152,8 @@ export function VillaPhotoUploader({ images, onChange }: VillaPhotoUploaderProps
       {images.length > 0 ? (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">
-            {images.length} photo{images.length > 1 ? "s" : ""} sélectionnée{images.length > 1 ? "s" : ""} (la 1ère photo sera la photo de couverture) :
+            {images.length} photo{images.length > 1 ? "s" : ""} sélectionnée
+            {images.length > 1 ? "s" : ""} (la 1ère photo sera la photo de couverture) :
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {images.map((url, index) => (
@@ -160,11 +161,7 @@ export function VillaPhotoUploader({ images, onChange }: VillaPhotoUploaderProps
                 key={`${url.slice(0, 30)}-${index}`}
                 className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted shadow-soft transition-all duration-200 hover:border-primary/50"
               >
-                <img
-                  src={url}
-                  alt={`Photo ${index + 1}`}
-                  className="size-full object-cover"
-                />
+                <img src={url} alt={`Photo ${index + 1}`} className="size-full object-cover" />
 
                 {index === 0 && (
                   <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold text-primary-foreground shadow">

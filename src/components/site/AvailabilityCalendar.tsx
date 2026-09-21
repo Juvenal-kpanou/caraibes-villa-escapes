@@ -44,8 +44,7 @@ export function AvailabilityCalendar({
   const today = toISODate(new Date());
   const grid = buildGrid(month);
 
-  const inRange = (iso: string) =>
-    Boolean(checkIn && checkOut && iso > checkIn && iso < checkOut);
+  const inRange = (iso: string) => Boolean(checkIn && checkOut && iso > checkIn && iso < checkOut);
 
   function handleClick(iso: string) {
     if (onToggleDate) {

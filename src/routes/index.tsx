@@ -62,9 +62,7 @@ const HIGHLIGHTS = [
 function Index() {
   const { data: villas } = useSuspenseQuery(villasQuery());
   const featured = villas.slice(0, 3);
-  const minPrice = villas.length
-    ? Math.min(...villas.map((v) => computeVillaNightlyPrice(v)))
-    : 0;
+  const minPrice = villas.length ? Math.min(...villas.map((v) => computeVillaNightlyPrice(v))) : 0;
 
   return (
     <SiteLayout>
@@ -121,7 +119,9 @@ function Index() {
             <Reveal delay={320}>
               <p className="mt-8 text-sm font-medium text-white/80">
                 À partir de{" "}
-                <span className="font-display text-2xl font-bold text-white drop-shadow">{formatEUR(minPrice)}</span>
+                <span className="font-display text-2xl font-bold text-white drop-shadow">
+                  {formatEUR(minPrice)}
+                </span>
                 <span className="text-xs"> / nuit</span>
               </p>
             </Reveal>
@@ -222,9 +222,9 @@ function Index() {
                   Prêt à vivre un séjour inoubliable ?
                 </h2>
                 <p className="mt-4 text-primary-foreground/90">
-                  Réservez en toute confiance. Votre dossier est sécurisé, votre virement est protégé
-                  et notre équipe locale vous accompagne de l'envoi du justificatif jusqu'à votre
-                  arrivée.
+                  Réservez en toute confiance. Votre dossier est sécurisé, votre virement est
+                  protégé et notre équipe locale vous accompagne de l'envoi du justificatif jusqu'à
+                  votre arrivée.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <Link

@@ -13,10 +13,7 @@ export const SCHEDULE_LABEL = `Arrivée à partir de ${CHECK_IN_TIME} / Départ 
 export const DEPOSIT_RATE = 0.5;
 
 export type PaymentOption =
-  | "full_with_deposit"
-  | "full_no_deposit"
-  | "partial_with_deposit"
-  | "partial_no_deposit";
+  "full_with_deposit" | "full_no_deposit" | "partial_with_deposit" | "partial_no_deposit";
 
 export const PAYMENT_OPTIONS: {
   key: PaymentOption;
@@ -87,8 +84,8 @@ export function computePricingBreakdown(
     threshold != null && Number(threshold) > 0
       ? Number(threshold)
       : capacity != null && Number(capacity) > 0
-      ? Number(capacity)
-      : 0;
+        ? Number(capacity)
+        : 0;
 
   const hasSurcharge = t > 0 && g > t;
 
@@ -159,20 +156,12 @@ export function computeVillaNightlyPrice(villa: {
   return computeTotal(villa.price_per_person, standardCapacity, 1, villa.pricing_threshold);
 }
 
-export function computeDueNow(
-  option: PaymentOption | string,
-  total: number,
-  deposit: number,
-) {
+export function computeDueNow(option: PaymentOption | string, total: number, deposit: number) {
   const base = isPartial(option) ? Math.round(total * DEPOSIT_RATE) : total;
   return base + (requiresDeposit(option) ? deposit : 0);
 }
 
 /** Engagement total du client (séjour + caution si elle est encaissée) */
-export function computeCommitment(
-  option: PaymentOption | string,
-  total: number,
-  deposit: number,
-) {
+export function computeCommitment(option: PaymentOption | string, total: number, deposit: number) {
   return total + (requiresDeposit(option) ? deposit : 0);
 }

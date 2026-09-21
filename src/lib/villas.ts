@@ -56,17 +56,31 @@ export function eachDateISO(from: string, to: string) {
   return out;
 }
 
-export async function fetchUnavailableDatesForVilla(client: any, villaId: string): Promise<string[]> {
+interface SupabaseQueryClient {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (table: string) => any;
+}
+
+export async function fetchUnavailableDatesForVilla(
+  client: SupabaseQueryClient,
+  villaId: string,
+): Promise<string[]> {
   const datesSet = new Set<string>();
 
   // 1. Fetch manual blocked_dates set by admin
-  const { data: blocked } = await client.from("blocked_dates").select("date").eq("villa_id", villaId);
+  const { data: blocked } = await client
+    .from("blocked_dates")
+    .select("date")
+    .eq("villa_id", villaId);
   if (blocked) {
     for (const b of blocked) datesSet.add(String(b.date).slice(0, 10));
   }
 
   // 2. Remove date_overrides set by admin
-  const { data: overrides } = await client.from("date_overrides").select("date").eq("villa_id", villaId);
+  const { data: overrides } = await client
+    .from("date_overrides")
+    .select("date")
+    .eq("villa_id", villaId);
   if (overrides) {
     for (const o of overrides) datesSet.delete(String(o.date).slice(0, 10));
   }
@@ -153,4 +167,3 @@ export const STATUS_LABELS: Record<string, string> = {
   refunded: "Remboursement effectué",
   refund_rejected: "Remboursement rejeté",
 };
-

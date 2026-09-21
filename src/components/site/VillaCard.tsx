@@ -21,7 +21,10 @@ export function parseVillaImages(rawImages: unknown): string[] {
         // Fallback to split
       }
     }
-    return trimmed.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
+    return trimmed
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   }
   return [];
 }
@@ -53,11 +56,13 @@ export function VillaCard({ villa }: { villa: Villa }) {
   }
 
   function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
+    if (e.touches[0]) {
+      touchStartX.current = e.touches[0].clientX;
+    }
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || !images.length) return;
+    if (touchStartX.current === null || !images.length || !e.changedTouches[0]) return;
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX;
 
@@ -86,7 +91,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
               {images.map((img, i) => (
-                <div key={`${img.slice(0, 30)}-${i}`} className="size-full shrink-0 relative bg-muted">
+                <div
+                  key={`${img.slice(0, 30)}-${i}`}
+                  className="size-full shrink-0 relative bg-muted"
+                >
                   {!failedImages[i] ? (
                     <img
                       src={img}
@@ -97,7 +105,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
                     />
                   ) : (
                     <div className="flex size-full flex-col items-center justify-center bg-sand/40 p-4 text-center text-muted-foreground">
-                      <i className="fa-solid fa-umbrella-beach text-3xl text-primary/60 mb-2" aria-hidden="true" />
+                      <i
+                        className="fa-solid fa-umbrella-beach text-3xl text-primary/60 mb-2"
+                        aria-hidden="true"
+                      />
                       <span className="text-xs font-semibold">{villa.name}</span>
                       <span className="text-[11px]">Photo non disponible</span>
                     </div>
@@ -107,7 +118,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
             </div>
           ) : (
             <div className="flex size-full flex-col items-center justify-center bg-sand/40 p-4 text-center text-muted-foreground">
-              <i className="fa-solid fa-umbrella-beach text-4xl text-primary/60 mb-2" aria-hidden="true" />
+              <i
+                className="fa-solid fa-umbrella-beach text-4xl text-primary/60 mb-2"
+                aria-hidden="true"
+              />
               <span className="text-xs font-semibold text-foreground">{villa.name}</span>
               <span className="text-[11px]">Photos à venir</span>
             </div>
@@ -182,7 +196,11 @@ export function VillaCard({ villa }: { villa: Villa }) {
               {villa.location}, Guadeloupe
             </p>
             <h3 className="mt-1 font-display text-2xl font-bold text-foreground break-words">
-              <Link to="/villas/$villaId" params={{ villaId: villa.id }} className="hover:text-primary transition-colors">
+              <Link
+                to="/villas/$villaId"
+                params={{ villaId: villa.id }}
+                className="hover:text-primary transition-colors"
+              >
                 {villa.name}
               </Link>
             </h3>
@@ -227,7 +245,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
               <span className="font-semibold text-foreground">Équipements :</span>
               <div className="flex flex-wrap gap-2 text-primary">
                 {amenities.slice(0, 6).map((a) => (
-                  <span key={a} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-foreground">
+                  <span
+                    key={a}
+                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-foreground"
+                  >
                     <i className={amenityIcon(a)} aria-hidden="true" />
                     {a}
                   </span>
