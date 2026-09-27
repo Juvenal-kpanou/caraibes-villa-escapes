@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { amenityIcon, formatEUR, type Villa } from "@/lib/villas";
-import { computeVillaNightlyPrice, getVillaStandardCapacity } from "@/lib/site";
+import { computeVillaNightlyPrice, getVillaStandardCapacity, optimizeImageUrl } from "@/lib/site";
 
 export function parseVillaImages(rawImages: unknown): string[] {
   if (!rawImages) return [];
@@ -80,7 +80,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
     <article className="card-hover group min-w-0 overflow-hidden rounded-3xl border border-border bg-card p-4 md:p-5 shadow-soft transition-all duration-300 hover:shadow-lift flex flex-col md:flex-row gap-5 md:gap-6 items-stretch">
       {/* Zone Carrousel d'images avec cadre arrondi séparé */}
       <div
-        className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl bg-muted md:w-[45%] md:aspect-[16/11] min-h-[220px]"
+        className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl bg-muted md:w-[45%] md:aspect-[16/11] min-h-[220px] touch-pan-y"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -97,9 +97,10 @@ export function VillaCard({ villa }: { villa: Villa }) {
                 >
                   {!failedImages[i] ? (
                     <img
-                      src={img}
+                      src={optimizeImageUrl(img, 600, 70)}
                       alt={`Villa ${villa.name} à ${villa.location} — photo ${i + 1}`}
                       loading={i === 0 ? "eager" : "lazy"}
+                      decoding="async"
                       onError={() => setFailedImages((prev) => ({ ...prev, [i]: true }))}
                       className="size-full object-cover"
                     />
@@ -234,7 +235,7 @@ export function VillaCard({ villa }: { villa: Villa }) {
 
           {/* Description complète directement visible */}
           {villa.description && (
-            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line break-words break-all [overflow-wrap:anywhere] min-w-0 line-clamp-3 md:line-clamp-none">
+            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line break-words [overflow-wrap:anywhere] min-w-0 line-clamp-3 md:line-clamp-none">
               {villa.description}
             </p>
           )}
@@ -271,21 +272,21 @@ export function VillaCard({ villa }: { villa: Villa }) {
             </p>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto min-w-0">
             <Link
               to="/villas/$villaId"
               params={{ villaId: villa.id }}
-              className="rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-xs font-semibold text-secondary-foreground transition-all duration-300 hover:bg-secondary hover:text-foreground text-center shrink-0"
+              className="rounded-full border border-border bg-secondary/50 px-3 sm:px-4 py-2.5 text-xs font-semibold text-secondary-foreground transition-all duration-300 hover:bg-secondary hover:text-foreground text-center shrink min-w-0 truncate"
             >
               Fiche complète
             </Link>
             <Link
               to="/villas/$villaId"
               params={{ villaId: villa.id }}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:brightness-110 ml-auto sm:ml-0 shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-primary px-3.5 sm:px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:brightness-110 shrink min-w-0 truncate"
             >
-              <span>Réserver cette villa</span>
-              <i className="fa-solid fa-arrow-right text-[10px]" aria-hidden="true" />
+              <span className="truncate">Réserver cette villa</span>
+              <i className="fa-solid fa-arrow-right text-[10px] shrink-0" aria-hidden="true" />
             </Link>
           </div>
         </div>

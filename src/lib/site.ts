@@ -165,3 +165,31 @@ export function computeDueNow(option: PaymentOption | string, total: number, dep
 export function computeCommitment(option: PaymentOption | string, total: number, deposit: number) {
   return total + (requiresDeposit(option) ? deposit : 0);
 }
+
+/** Optimise automatiquement les URLs d'images (Unsplash / Supabase) avec format WebP et compression */
+export function optimizeImageUrl(url: string, width = 800, quality = 75): string {
+  if (!url || typeof url !== "string") return url;
+  const trimmed = url.trim();
+  if (trimmed.includes("images.unsplash.com")) {
+    try {
+      const urlObj = new URL(trimmed);
+      urlObj.searchParams.set("auto", "format");
+      urlObj.searchParams.set("fit", "crop");
+      urlObj.searchParams.set("w", String(width));
+      urlObj.searchParams.set("q", String(quality));
+      urlObj.searchParams.set("fm", "webp");
+      return urlObj.toString();
+    } catch {
+      return trimmed;
+    }
+  }
+  if (
+    trimmed.includes("supabase.co/storage/v1/object/public") ||
+    trimmed.includes("lovable.cloud/storage")
+  ) {
+    if (!trimmed.includes("?")) {
+      return `${trimmed}?width=${width}&quality=${quality}&format=webp`;
+    }
+  }
+  return trimmed;
+}

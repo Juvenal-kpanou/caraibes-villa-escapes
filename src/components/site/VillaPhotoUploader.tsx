@@ -7,6 +7,36 @@ export type VillaPhotoUploaderProps = {
   onChange: (images: string[]) => void;
 };
 
+async function compressImageFile(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      const MAX_WIDTH = 1200;
+      let width = img.width;
+      let height = img.height;
+      if (width > MAX_WIDTH) {
+        height = Math.round((height * MAX_WIDTH) / width);
+        width = MAX_WIDTH;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/webp", 0.75));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    };
+    img.src = url;
+  });
+}
+
 export function VillaPhotoUploader({ images, onChange }: VillaPhotoUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -45,13 +75,8 @@ export function VillaPhotoUploader({ images, onChange }: VillaPhotoUploaderProps
           }
         }
 
-        // Si le bucket n'existe pas encore ou retourne une erreur, lire en Data URL local
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+        // Si le bucket n'existe pas encore ou retourne une erreur, compresser en WebP 1200px max
+        const dataUrl = await compressImageFile(file);
         newUrls.push(dataUrl);
       } catch (err) {
         console.error("Erreur lors de l'upload du fichier:", err);

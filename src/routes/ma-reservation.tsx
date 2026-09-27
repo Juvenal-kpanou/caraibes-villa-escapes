@@ -377,13 +377,13 @@ function MyReservationPage() {
               <div className="rounded-3xl border border-amber-300 bg-amber-500/10 p-6 text-sm text-amber-900">
                 <p className="font-semibold text-base">
                   <i className="fa-solid fa-clock mr-2 text-amber-600" aria-hidden="true" />
-                  Demande enregistrée — Vos dates sont bloquées temporairement (72h)
+                  Demande enregistrée — En attente de vérification du virement
                 </p>
                 <p className="mt-2 text-amber-800">
-                  Vos dates sont réservées et grisées dans le calendrier public pour éviter toute
-                  réservation simultanée. Pour valider définitivement votre séjour, merci
-                  d'effectuer le virement bancaire ci-dessus. Sans validation ou virement sous 72h,
-                  les dates seront automatiquement libérées.
+                  Votre demande de réservation a bien été prise en compte. Pour valider définitivement
+                  votre séjour, merci d'effectuer le virement bancaire ci-dessus en indiquant la référence <strong>{reservation.reference}</strong>.
+                  Dès réception et vérification de votre virement par l'administrateur, votre réservation sera
+                  confirmée.
                 </p>
               </div>
             )}
@@ -395,9 +395,8 @@ function MyReservationPage() {
                   Demande non aboutie
                 </p>
                 <p className="mt-2">
-                  Votre demande de réservation n'a pas pu être finalisée. Les dates du séjour ont
-                  été libérées dans le calendrier public. Si vous souhaitez effectuer un nouveau
-                  séjour, n'hésitez pas à choisir de nouvelles dates.
+                  Votre demande de réservation n'a pas pu être finalisée. Si vous souhaitez effectuer un nouveau
+                  séjour, n'hésitez pas à faire une nouvelle demande.
                 </p>
               </div>
             )}

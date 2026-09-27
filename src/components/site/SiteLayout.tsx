@@ -20,15 +20,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background w-full max-w-full overflow-x-hidden min-w-0">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md w-full max-w-full">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md w-full max-w-full pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3.5">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="gradient-lagoon flex size-10 items-center justify-center rounded-2xl text-primary-foreground shadow-soft">
+          <Link to="/" className="flex items-center gap-2.5 min-w-0 shrink">
+            <span className="gradient-lagoon flex size-10 shrink-0 items-center justify-center rounded-2xl text-primary-foreground shadow-soft">
               <i className="fa-solid fa-umbrella-beach" aria-hidden="true" />
             </span>
-            <span className="leading-tight">
-              <span className="block font-display text-lg">{SITE_NAME}</span>
-              <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="leading-tight truncate min-w-0">
+              <span className="block font-display text-lg truncate">{SITE_NAME}</span>
+              <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground truncate">
                 {SITE_TAGLINE}
               </span>
             </span>
@@ -57,7 +57,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             type="button"
             aria-label="Ouvrir le menu"
             onClick={() => setOpen((v) => !v)}
-            className="rounded-full border border-border p-2.5 text-foreground md:hidden"
+            className="rounded-full border border-border p-2.5 text-foreground md:hidden shrink-0"
           >
             <i className={open ? "fa-solid fa-xmark" : "fa-solid fa-bars"} aria-hidden="true" />
           </button>
@@ -81,7 +81,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1 w-full max-w-full overflow-x-hidden min-w-0">{children}</main>
 
-      <footer className="mt-20 border-t border-border bg-sand text-sand-foreground w-full max-w-full overflow-x-hidden min-w-0">
+      <footer className="mt-20 border-t border-border bg-sand text-sand-foreground w-full max-w-full overflow-x-hidden min-w-0 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-12 sm:grid-cols-2 lg:grid-cols-4 min-w-0">
           <div className="min-w-0">
             <p className="font-display text-xl">{SITE_NAME}</p>
@@ -170,13 +170,13 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         </div>
       </footer>
 
-      {/* Bouton WhatsApp flottant avec animation de pulsation */}
+      {/* Bouton WhatsApp flottant avec animation de pulsation et support iOS Safe Area */}
       <a
         href="https://wa.me/33780957372?text=Bonjour%2C%20je%20souhaite%20avoir%20des%20informations%20sur%20une%20villa"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Contacter sur WhatsApp"
-        className="fixed bottom-6 right-6 z-50 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lift transition-transform duration-300 hover:scale-110 focus:outline-none"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))] z-50 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lift transition-transform duration-300 hover:scale-110 focus:outline-none"
       >
         <span className="pointer-events-none absolute inset-0 rounded-full bg-[#25D366]/60 animate-ping" />
         <i className="fa-brands fa-whatsapp relative z-10 text-3xl" aria-hidden="true" />

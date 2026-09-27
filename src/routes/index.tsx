@@ -25,6 +25,13 @@ export const Route = createFileRoute("/")({
           "Des villas choisies avec soin en Guadeloupe, pour des vacances simples et chaleureuses.",
       },
     ],
+    links: [
+      {
+        rel: "preload",
+        as: "image",
+        href: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=70&fm=webp",
+      },
+    ],
   }),
   component: Index,
 });
@@ -71,10 +78,13 @@ function Index() {
         {/* Image d'arrière-plan immersive avec overlay sombre pour une lisibilité parfaite */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=2000&q=85"
+            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=70&fm=webp"
             alt="Villa d'exception avec piscine en Guadeloupe"
             className="size-full object-cover"
             fetchPriority="high"
+            decoding="async"
+            width={1200}
+            height={800}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/70" />
         </div>
@@ -87,7 +97,7 @@ function Index() {
             </p>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="mt-6 font-display text-4xl leading-[1.1] text-white drop-shadow-md md:text-6xl lg:text-7xl">
+            <h1 className="mt-6 font-display text-3xl sm:text-4xl leading-[1.1] text-white drop-shadow-md md:text-6xl lg:text-7xl [overflow-wrap:anywhere] break-words">
               Des villas de charme pour des vacances{" "}
               <span className="text-emerald-300">authentiques</span> en Guadeloupe.
             </h1>
@@ -98,17 +108,17 @@ function Index() {
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-xs sm:max-w-none mx-auto w-full">
               <Link
                 to="/villas"
-                className="gradient-lagoon inline-flex items-center gap-2.5 rounded-full px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:scale-105"
+                className="gradient-lagoon inline-flex items-center justify-center gap-2.5 rounded-full px-6 sm:px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:scale-105 w-full sm:w-auto"
               >
                 Découvrir les villas
                 <i className="fa-solid fa-arrow-right" aria-hidden="true" />
               </Link>
               <Link
                 to="/comment-ca-marche"
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-white/15 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25"
+                className="inline-flex items-center justify-center gap-2.5 rounded-full border border-white/30 bg-white/15 px-6 sm:px-8 py-3.5 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25 w-full sm:w-auto"
               >
                 Comment ça marche ?
               </Link>

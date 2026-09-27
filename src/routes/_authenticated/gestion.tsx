@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -168,7 +168,7 @@ function ReservationsPanel() {
       if (status === "confirmed") {
         toast.success("Virement confirmé ! La réservation est maintenant enregistrée.");
       } else if (status === "unfulfilled") {
-        toast.success("Dates libérées. La demande a été marquée comme 'Demande non aboutie'.");
+        toast.success("La demande a été marquée comme 'Demande non aboutie'.");
       } else {
         toast.success("Statut mis à jour");
       }
@@ -203,10 +203,6 @@ function ReservationsPanel() {
           guest_address?: string;
           villas?: { name: string; location: string } | null;
         };
-        const createdAtTime = new Date(r.created_at).getTime();
-        const hoursElapsed = (Date.now() - createdAtTime) / (3600 * 1000);
-        const hoursRemaining = Math.max(0, Math.ceil(72 - hoursElapsed));
-        const isPendingExpired = r.status === "pending" && hoursRemaining <= 0;
 
         return (
           <article
@@ -220,9 +216,7 @@ function ReservationsPanel() {
                 </p>
                 {r.status === "pending" && (
                   <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                    {isPendingExpired
-                      ? "⏱️ Délai de 72h dépassé"
-                      : `⏱️ Expire dans ~${hoursRemaining}h`}
+                    En attente de virement
                   </span>
                 )}
               </div>
@@ -268,8 +262,8 @@ function ReservationsPanel() {
                       onClick={() => setStatus(r.id, "unfulfilled")}
                       className="rounded-full bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
                     >
-                      <i className="fa-solid fa-calendar-xmark mr-1.5" aria-hidden="true" />
-                      Libérer les dates
+                      <i className="fa-solid fa-circle-xmark mr-1.5" aria-hidden="true" />
+                      Marquer non aboutie
                     </button>
                   </>
                 )}
@@ -692,109 +686,183 @@ function BlockedDatesPanel() {
   const queryClient = useQueryClient();
   const { data: villas = [] } = useQuery(villasQuery({ onlyActive: false }));
   const [villaId, setVillaId] = useState<string>("");
+  const [inputDate, setInputDate] = useState<string>("");
   const selected = villaId || villas[0]?.id || "";
 
-  const { data: state } = useQuery({
-    queryKey: ["blocked", selected],
+  const { data: blockedList = [], isLoading } = useQuery({
+    queryKey: ["blocked-dates-admin", selected],
     enabled: Boolean(selected),
     queryFn: async () => {
-      const [manual, overrides, unavailable] = await Promise.all([
-        supabase.from("blocked_dates").select("id, date").eq("villa_id", selected),
-        supabase.from("date_overrides").select("id, date").eq("villa_id", selected),
-        supabase.rpc("get_unavailable_dates", { _villa_id: selected }),
-      ]);
-      if (manual.error) throw manual.error;
-      if (overrides.error) throw overrides.error;
-      if (unavailable.error) throw unavailable.error;
-      const norm = (rows: Array<Record<string, unknown>> | null) =>
-        (rows ?? []).map((r) => ({ id: String(r["id"]), date: String(r["date"]).slice(0, 10) }));
-      return {
-        manual: norm(manual.data as Array<Record<string, unknown>>),
-        overrides: norm(overrides.data as Array<Record<string, unknown>>),
-        unavailable: ((unavailable.data as Array<Record<string, unknown> | string>) ?? []).map(
-          (d) =>
-            String(typeof d === "string" ? d : (d["get_unavailable_dates"] ?? d["date"])).slice(
-              0,
-              10,
-            ),
-        ),
-      };
+      const { data, error } = await supabase
+        .from("blocked_dates")
+        .select("id, date")
+        .eq("villa_id", selected)
+        .order("date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((r) => ({
+        id: String(r.id),
+        date: String(r.date).slice(0, 10),
+      }));
     },
   });
 
-  const manual = state?.manual ?? [];
-  const overrides = state?.overrides ?? [];
-  const unavailable = state?.unavailable ?? [];
+  const blockedIsoDates = useMemo(
+    () => blockedList.map((b) => b.date),
+    [blockedList],
+  );
 
-  async function toggle(date: string) {
-    const normDate = date.slice(0, 10);
-    const manualRow = manual.find((b) => b.date === normDate || b.date.startsWith(normDate));
-    const overrideRow = overrides.find((b) => b.date === normDate || b.date.startsWith(normDate));
-    let error = null;
-
-    if (manualRow) {
-      ({ error } = await supabase.from("blocked_dates").delete().eq("id", manualRow.id));
-    } else if (overrideRow) {
-      ({ error } = await supabase.from("date_overrides").delete().eq("id", overrideRow.id));
-    } else if (unavailable.includes(normDate)) {
-      // date bloquée par une réservation : on la libère via une dérogation
-      const res = await supabase
-        .from("date_overrides")
-        .upsert({ villa_id: selected, date: normDate }, { onConflict: "villa_id,date" });
-      error = res.error;
-    } else {
-      const res = await supabase
-        .from("blocked_dates")
-        .insert({ villa_id: selected, date: normDate });
-      if (res.error) {
-        // En cas de conflit (la date existait déjà en BDD mais n'était pas synchronisée localement)
-        if (res.error.code === "23505" || res.error.message?.includes("unique constraint")) {
-          const delRes = await supabase
-            .from("blocked_dates")
-            .delete()
-            .eq("villa_id", selected)
-            .eq("date", normDate);
-          error = delRes.error;
-        } else {
-          error = res.error;
-        }
-      }
+  async function blockDate(isoDate: string) {
+    const norm = isoDate.slice(0, 10);
+    if (!norm || !/^\d{4}-\d{2}-\d{2}$/.test(norm)) {
+      toast.error("Veuillez sélectionner une date valide.");
+      return;
     }
+    const existing = blockedList.find((b) => b.date === norm);
+    if (existing) {
+      toast.error(`La date ${formatDateFr(norm)} est déjà bloquée.`);
+      return;
+    }
+    const { error } = await supabase
+      .from("blocked_dates")
+      .insert({ villa_id: selected, date: norm });
     if (error) {
       toast.error(error.message);
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["blocked", selected] });
+    toast.success(`Date du ${formatDateFr(norm)} bloquée avec succès !`);
+    setInputDate("");
+    queryClient.invalidateQueries({ queryKey: ["blocked-dates-admin", selected] });
     queryClient.invalidateQueries({ queryKey: ["unavailable", selected] });
+  }
+
+  async function unblockDate(idOrDate: string) {
+    const row = blockedList.find(
+      (b) => b.id === idOrDate || b.date === idOrDate.slice(0, 10),
+    );
+    if (!row) {
+      // Direct delete fallback by date
+      const { error } = await supabase
+        .from("blocked_dates")
+        .delete()
+        .eq("villa_id", selected)
+        .eq("date", idOrDate.slice(0, 10));
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("blocked_dates").delete().eq("id", row.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+    }
+    toast.success("Date débloquée avec succès !");
+    queryClient.invalidateQueries({ queryKey: ["blocked-dates-admin", selected] });
+    queryClient.invalidateQueries({ queryKey: ["unavailable", selected] });
+  }
+
+  async function toggleDate(date: string) {
+    const norm = date.slice(0, 10);
+    const isBlocked = blockedIsoDates.includes(norm);
+    if (isBlocked) {
+      await unblockDate(norm);
+    } else {
+      await blockDate(norm);
+    }
   }
 
   if (!villas.length) return <p className="text-muted-foreground">Ajoutez d'abord une villa.</p>;
 
   return (
-    <div className="space-y-4">
-      <select
-        value={selected}
-        onChange={(e) => setVillaId(e.target.value)}
-        className="rounded-full border border-border bg-background px-4 py-3 text-sm"
-      >
-        {villas.map((v) => (
-          <option key={v.id} value={v.id}>
-            {v.name}
-          </option>
-        ))}
-      </select>
-      <p className="text-sm text-muted-foreground">
-        Cliquez sur une date pour la bloquer ou la libérer. Les dates occupées par une réservation
-        peuvent aussi être libérées manuellement.
-      </p>
-      <div className="max-w-md">
-        <AvailabilityCalendar unavailable={unavailable} onToggleDate={toggle} />
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-4">
+        <select
+          value={selected}
+          onChange={(e) => setVillaId(e.target.value)}
+          className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold"
+        >
+          {villas.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name} ({v.location})
+            </option>
+          ))}
+        </select>
       </div>
-      {overrides.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Dates libérées manuellement : {overrides.map((o) => formatDateFr(o.date)).join(", ")}
-        </p>
-      )}
+
+      <p className="text-sm text-muted-foreground">
+        Gestion 100% manuelle des dates bloquées. Cliquez directement sur une date dans le calendrier pour la <strong>bloquer</strong> ou la <strong>débloquer</strong>, ou utilisez la liste ci-dessous.
+      </p>
+
+      {/* Formulaire manuel d'ajout de date à bloquer */}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft">
+        <label className="text-xs font-semibold text-foreground">
+          Bloquer une date spécifique :
+        </label>
+        <input
+          type="date"
+          value={inputDate}
+          onChange={(e) => setInputDate(e.target.value)}
+          className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          disabled={!inputDate}
+          onClick={() => blockDate(inputDate)}
+          className="gradient-lagoon rounded-full px-5 py-2 text-xs font-semibold text-primary-foreground shadow-soft disabled:opacity-50"
+        >
+          <i className="fa-solid fa-lock mr-1.5" aria-hidden="true" />
+          Bloquer cette date
+        </button>
+      </div>
+
+      <div className="grid gap-8 md:grid-cols-2 items-start">
+        {/* Calendrier interactif */}
+        <div>
+          <h3 className="mb-3 font-display text-lg">Calendrier des disponibilités</h3>
+          <AvailabilityCalendar unavailable={blockedIsoDates} onToggleDate={toggleDate} />
+        </div>
+
+        {/* Liste des dates bloquées avec bouton débloquer */}
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-soft space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="font-display text-lg">Dates actuellement bloquées</h3>
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
+              {blockedList.length} date{blockedList.length > 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {isLoading ? (
+            <p className="text-xs text-muted-foreground">Chargement des dates bloquées...</p>
+          ) : blockedList.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">
+              Aucune date bloquée manuellement pour cette villa.
+            </p>
+          ) : (
+            <ul className="max-h-80 overflow-y-auto space-y-2 pr-1 scrollbar-none">
+              {blockedList.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 px-3.5 py-2.5 text-sm"
+                >
+                  <span className="font-medium text-foreground">
+                    <i className="fa-solid fa-calendar-day mr-2 text-primary" aria-hidden="true" />
+                    {formatDateFr(item.date)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => unblockDate(item.id)}
+                    className="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <i className="fa-solid fa-lock-open mr-1" aria-hidden="true" />
+                    Débloquer
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

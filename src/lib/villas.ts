@@ -23,6 +23,38 @@ export type Villa = {
   created_at: string;
 };
 
+const DEFAULT_CLEAN_VILLA_IMAGES = [
+  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=75&fm=webp",
+  "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=75&fm=webp",
+  "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=75&fm=webp",
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=75&fm=webp",
+];
+
+export function sanitizeVillaImages(rawImages: unknown): string[] {
+  let list: string[] = [];
+  if (Array.isArray(rawImages)) {
+    list = rawImages.filter((img) => typeof img === "string" && img.trim().length > 0);
+  } else if (typeof rawImages === "string" && rawImages.trim()) {
+    try {
+      const parsed = JSON.parse(rawImages.trim());
+      if (Array.isArray(parsed)) {
+        list = parsed.filter((img) => typeof img === "string" && img.trim().length > 0);
+      }
+    } catch {
+      list = rawImages.split("\n").map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
+  const cleaned = list.map((img, i) => {
+    if (typeof img === "string" && (img.startsWith("data:image") || img.length > 2000)) {
+      return DEFAULT_CLEAN_VILLA_IMAGES[i % DEFAULT_CLEAN_VILLA_IMAGES.length] ?? DEFAULT_CLEAN_VILLA_IMAGES[0];
+    }
+    return img;
+  });
+
+  return cleaned.length > 0 ? (cleaned as string[]) : DEFAULT_CLEAN_VILLA_IMAGES;
+}
+
 export const villasQuery = (opts?: { onlyActive?: boolean }) =>
   queryOptions({
     queryKey: ["villas", opts?.onlyActive ?? true],
@@ -31,7 +63,10 @@ export const villasQuery = (opts?: { onlyActive?: boolean }) =>
       if (opts?.onlyActive !== false) q = q.eq("is_active", true);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Villa[];
+      return (data ?? []).map((v) => ({
+        ...v,
+        images: sanitizeVillaImages(v.images),
+      })) as Villa[];
     },
   });
 
@@ -41,7 +76,11 @@ export const villaQuery = (id: string) =>
     queryFn: async (): Promise<Villa | null> => {
       const { data, error } = await supabase.from("villas").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      return (data ?? null) as Villa | null;
+      if (!data) return null;
+      return {
+        ...data,
+        images: sanitizeVillaImages(data.images),
+      } as Villa;
     },
   });
 

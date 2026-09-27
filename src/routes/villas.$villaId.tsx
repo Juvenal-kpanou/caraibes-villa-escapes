@@ -17,6 +17,7 @@ import {
   computeTotal,
   computeVillaNightlyPrice,
   getVillaStandardCapacity,
+  optimizeImageUrl,
   requiresDeposit,
   type PaymentOption,
 } from "@/lib/site";
@@ -190,13 +191,13 @@ function VillaDetailPage() {
             <i className="fa-solid fa-location-dot mr-1.5" aria-hidden="true" />
             {villa.location}, Guadeloupe
           </p>
-          <h1 className="mt-2 font-display text-4xl md:text-5xl">{villa.name}</h1>
+          <h1 className="mt-2 font-display text-3xl sm:text-4xl md:text-5xl [overflow-wrap:anywhere] break-words">{villa.name}</h1>
         </Reveal>
 
         {/* Carrousel Multi-Photos Fiche Client */}
         <div className="mt-6 space-y-3">
           <div
-            className="group relative aspect-[16/10] w-full overflow-hidden rounded-3xl bg-muted shadow-soft md:aspect-[16/9]"
+            className="group relative aspect-[16/10] w-full overflow-hidden rounded-3xl bg-muted shadow-soft md:aspect-[16/9] touch-pan-y"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
@@ -208,12 +209,13 @@ function VillaDetailPage() {
                 {images.map((img, i) => (
                   <div key={`${img.slice(0, 30)}-${i}`} className="size-full shrink-0">
                     <img
-                      src={img}
+                      src={optimizeImageUrl(img, 1200, 75)}
                       alt={`Villa ${villa.name} à ${villa.location} — photo ${i + 1}`}
                       loading={i === 0 ? "eager" : "lazy"}
+                      decoding="async"
                       className="size-full object-cover"
-                      width={1600}
-                      height={1000}
+                      width={1200}
+                      height={750}
                     />
                   </div>
                 ))}
@@ -299,7 +301,13 @@ function VillaDetailPage() {
                       : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <img src={img} alt="" loading="lazy" className="size-full object-cover" />
+                  <img
+                    src={optimizeImageUrl(img, 200, 70)}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-full object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -345,7 +353,7 @@ function VillaDetailPage() {
 
             <div className="min-w-0">
               <h2 className="font-display text-2xl">La villa</h2>
-              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground break-words break-all [overflow-wrap:anywhere] min-w-0">
+              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere] min-w-0">
                 {villa.description}
               </p>
             </div>
@@ -383,8 +391,8 @@ function VillaDetailPage() {
             </div>
           </div>
 
-          <aside className="h-fit lg:sticky lg:top-24">
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+          <aside className="h-fit lg:sticky lg:top-24 w-full max-w-full min-w-0">
+            <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft w-full max-w-full overflow-hidden min-w-0">
               {reference ? (
                 <div className="space-y-4 text-sm">
                   <div className="text-center">
