@@ -144,17 +144,36 @@ export const createReservation = createServerFn({ method: "POST" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let insertError: any = null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const firstAttempt = await (db.from("reservations") as any)
-      .insert(insertPayload)
-      .select(RESERVATION_FIELDS)
-      .single();
+    // 1. Attempt using SECURITY DEFINER RPC function (bypasses RLS)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rpcRes = await (db as any).rpc("create_reservation", {
+        payload: insertPayload,
+      });
+      if (rpcRes.data && !rpcRes.error) {
+        created = rpcRes.data;
+        insertError = null;
+      } else if (rpcRes.error) {
+        insertError = rpcRes.error;
+      }
+    } catch (rpcErr) {
+      console.warn("RPC create_reservation call failed:", rpcErr);
+    }
 
-    created = firstAttempt.data;
-    insertError = firstAttempt.error;
+    // 2. Direct table insert fallback
+    if (!created) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const firstAttempt = await (db.from("reservations") as any)
+        .insert(insertPayload)
+        .select(RESERVATION_FIELDS)
+        .single();
+      created = firstAttempt.data;
+      insertError = firstAttempt.error;
+    }
 
-    // Fallback si la colonne guest_address n'existe pas encore dans la base Supabase
+    // 3. Fallback si la colonne guest_address n'existe pas encore dans la base Supabase
     if (
+      !created &&
       insertError &&
       (insertError.message?.includes("guest_address") ||
         insertError.message?.includes("schema cache"))
@@ -170,42 +189,8 @@ export const createReservation = createServerFn({ method: "POST" })
       insertError = retry.error;
     }
 
-    // Secondary fallback using SECURITY DEFINER RPC function if direct insert hits RLS
-    if (insertError) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rpcRes = await (db as any).rpc("create_reservation_public", {
-          _reference: reference,
-          _villa_id: data.villaId,
-          _guest_name: data.guestName,
-          _guest_email: data.guestEmail,
-          _guest_phone: data.guestPhone,
-          _guest_address: data.guestAddress || null,
-          _guests: data.guests,
-          _check_in: data.checkIn,
-          _check_out: data.checkOut,
-          _nights: nights,
-          _price_per_night: Number(villa.price_per_night),
-          _price_per_person: pricePerPerson,
-          _cleaning_fee: Number(villa.cleaning_fee),
-          _deposit: deposit,
-          _total_amount: total,
-          _amount_due_now: dueNow,
-          _payment_option: data.paymentOption,
-          _deposit_required: requiresDeposit(data.paymentOption),
-        });
-
-        if (rpcRes.data) {
-          created = rpcRes.data;
-          insertError = null;
-        }
-      } catch (rpcErr) {
-        console.warn("RPC fallback unavailable:", rpcErr);
-      }
-    }
-
-    if (insertError) {
-      // Tentative automatique de secours avec le client public Supabase (Lovable Cloud)
+    // 4. Tentative automatique de secours avec le client public Supabase (Lovable Cloud)
+    if (!created && insertError) {
       try {
         const { supabase } = await import("@/integrations/supabase/client");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,38 +220,9 @@ export const createReservation = createServerFn({ method: "POST" })
       }
     }
 
-    if (insertError && !created) {
-      console.warn("DB insertion restricted by RLS policy, serving self-recovering reservation response:", insertError);
-      created = {
-        id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `res-${Date.now()}`,
-        reference,
-        villa_id: data.villaId,
-        guest_name: data.guestName,
-        guest_email: data.guestEmail,
-        guest_phone: data.guestPhone,
-        guest_address: data.guestAddress || null,
-        guests: data.guests,
-        check_in: data.checkIn,
-        check_out: data.checkOut,
-        nights,
-        price_per_night: Number(villa.price_per_night || 0),
-        price_per_person: pricePerPerson,
-        cleaning_fee: Number(villa.cleaning_fee || 0),
-        deposit,
-        total_amount: total,
-        amount_due_now: dueNow,
-        amount_paid: 0,
-        payment_option: data.paymentOption,
-        deposit_required: requiresDeposit(data.paymentOption),
-        status: "pending",
-        created_at: new Date().toISOString(),
-        villas: {
-          name: villa.name,
-          location: villa.location,
-          capacity: villa.capacity,
-          images: Array.isArray(villa.images) ? villa.images : [],
-        },
-      };
+    if (insertError || !created) {
+      const errorMsg = insertError?.message || "Impossible d'enregistrer la réservation en base de données.";
+      throw new Error(errorMsg);
     }
 
     return { reference, nights, total, dueNow, reservation: created };

@@ -4,6 +4,8 @@
 ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS guest_address text;
 
 -- 2. Ensure RLS policies allow public/anon reservation insertion and selection
+ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "public_can_insert_reservations" ON public.reservations;
 CREATE POLICY "public_can_insert_reservations"
 ON public.reservations
@@ -18,27 +20,16 @@ FOR SELECT
 TO public
 USING (true);
 
--- 3. Security definer RPC function as bulletproof fallback for public reservation creation
-CREATE OR REPLACE FUNCTION public.create_reservation_public(
-  _reference text,
-  _villa_id uuid,
-  _guest_name text,
-  _guest_email text,
-  _guest_phone text,
-  _guest_address text DEFAULT NULL,
-  _guests integer DEFAULT 1,
-  _check_in date DEFAULT NULL,
-  _check_out date DEFAULT NULL,
-  _nights integer DEFAULT 1,
-  _price_per_night numeric DEFAULT 0,
-  _price_per_person numeric DEFAULT 0,
-  _cleaning_fee numeric DEFAULT 0,
-  _deposit numeric DEFAULT 0,
-  _total_amount numeric DEFAULT 0,
-  _amount_due_now numeric DEFAULT 0,
-  _payment_option text DEFAULT 'full_with_deposit',
-  _deposit_required boolean DEFAULT true
-)
+DROP POLICY IF EXISTS "admins_all_reservations" ON public.reservations;
+CREATE POLICY "admins_all_reservations"
+ON public.reservations
+FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+-- 3. Security definer RPC function with JSON argument as bulletproof fallback for public reservation creation
+CREATE OR REPLACE FUNCTION public.create_reservation(payload jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -47,7 +38,44 @@ AS $$
 DECLARE
   _res_id uuid;
   _result jsonb;
+  _ref text;
+  _villa_id uuid;
+  _gname text;
+  _gemail text;
+  _gphone text;
+  _gaddr text;
+  _guests int;
+  _check_in date;
+  _check_out date;
+  _nights int;
+  _pnight numeric;
+  _pperson numeric;
+  _clean numeric;
+  _dep numeric;
+  _total numeric;
+  _due numeric;
+  _popt text;
+  _dep_req boolean;
 BEGIN
+  _ref := payload->>'reference';
+  _villa_id := (payload->>'villa_id')::uuid;
+  _gname := payload->>'guest_name';
+  _gemail := payload->>'guest_email';
+  _gphone := payload->>'guest_phone';
+  _gaddr := payload->>'guest_address';
+  _guests := COALESCE((payload->>'guests')::int, 1);
+  _check_in := (payload->>'check_in')::date;
+  _check_out := (payload->>'check_out')::date;
+  _nights := COALESCE((payload->>'nights')::int, 1);
+  _pnight := COALESCE((payload->>'price_per_night')::numeric, 0);
+  _pperson := COALESCE((payload->>'price_per_person')::numeric, 0);
+  _clean := COALESCE((payload->>'cleaning_fee')::numeric, 0);
+  _dep := COALESCE((payload->>'deposit')::numeric, 0);
+  _total := COALESCE((payload->>'total_amount')::numeric, 0);
+  _due := COALESCE((payload->>'amount_due_now')::numeric, 0);
+  _popt := COALESCE(payload->>'payment_option', 'full_with_deposit');
+  _dep_req := COALESCE((payload->>'deposit_required')::boolean, true);
+
   INSERT INTO public.reservations (
     reference,
     villa_id,
@@ -70,25 +98,25 @@ BEGIN
     deposit_required,
     status
   ) VALUES (
-    _reference,
+    _ref,
     _villa_id,
-    _guest_name,
-    _guest_email,
-    _guest_phone,
-    _guest_address,
+    _gname,
+    _gemail,
+    _gphone,
+    _gaddr,
     _guests,
     _check_in,
     _check_out,
     _nights,
-    _price_per_night,
-    _price_per_person,
-    _cleaning_fee,
-    _deposit,
-    _total_amount,
-    _amount_due_now,
+    _pnight,
+    _pperson,
+    _clean,
+    _dep,
+    _total,
+    _due,
     0,
-    _payment_option,
-    _deposit_required,
+    _popt,
+    _dep_req,
     'pending'
   )
   RETURNING id INTO _res_id;
@@ -135,4 +163,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.create_reservation_public TO anon, authenticated, public;
+GRANT EXECUTE ON FUNCTION public.create_reservation(jsonb) TO anon, authenticated, public;
