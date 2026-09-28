@@ -37,6 +37,8 @@ function VillasPage() {
   const [minGuests, setMinGuests] = useState(0);
   const [sort, setSort] = useState<SortKey>("price-asc");
 
+  const [visibleLimit, setVisibleLimit] = useState(6);
+
   const locations = useMemo(
     () => Array.from(new Set(villas.map((v) => v.location))).sort(),
     [villas],
@@ -61,6 +63,11 @@ function VillasPage() {
       return b.capacity - a.capacity;
     });
   }, [villas, search, location, minGuests, sort]);
+
+  const visibleVillas = useMemo(
+    () => filtered.slice(0, visibleLimit),
+    [filtered, visibleLimit],
+  );
 
   const minPrice = villas.length ? Math.min(...villas.map((v) => computeVillaNightlyPrice(v))) : 0;
 
@@ -92,7 +99,10 @@ function VillasPage() {
                 />
                 <input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setVisibleLimit(6);
+                  }}
                   placeholder="Nom, commune…"
                   className="w-full rounded-full border border-border bg-background py-2 pl-9 pr-3 outline-none transition focus:border-primary"
                 />
@@ -103,7 +113,10 @@ function VillasPage() {
               <span className="font-semibold">Commune</span>
               <select
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setVisibleLimit(6);
+                }}
                 className="rounded-full border border-border bg-background px-4 py-2 outline-none transition focus:border-primary"
               >
                 <option value="">Toutes les communes</option>
@@ -119,7 +132,10 @@ function VillasPage() {
               <span className="font-semibold">Voyageurs</span>
               <select
                 value={minGuests}
-                onChange={(e) => setMinGuests(Number(e.target.value))}
+                onChange={(e) => {
+                  setMinGuests(Number(e.target.value));
+                  setVisibleLimit(6);
+                }}
                 className="rounded-full border border-border bg-background px-4 py-2 outline-none transition focus:border-primary"
               >
                 <option value={0}>Peu importe</option>
@@ -135,7 +151,10 @@ function VillasPage() {
               <span className="font-semibold">Trier par</span>
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as SortKey)}
+                onChange={(e) => {
+                  setSort(e.target.value as SortKey);
+                  setVisibleLimit(6);
+                }}
                 className="rounded-full border border-border bg-background px-4 py-2 outline-none transition focus:border-primary"
               >
                 <option value="price-asc">Prix croissant</option>
@@ -147,7 +166,7 @@ function VillasPage() {
         </Reveal>
 
         <p className="mt-6 text-sm text-muted-foreground">
-          {filtered.length} villa{filtered.length > 1 ? "s" : ""} correspondant à votre recherche
+          Affichage de {visibleVillas.length} sur {filtered.length} villa{filtered.length > 1 ? "s" : ""}
         </p>
 
         {filtered.length === 0 ? (
@@ -158,12 +177,27 @@ function VillasPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-8 flex flex-col gap-8 max-w-5xl mx-auto">
-            {filtered.map((villa, i) => (
-              <Reveal key={villa.id} delay={i * 80}>
-                <VillaCard villa={villa} />
-              </Reveal>
-            ))}
+          <div className="mt-8 space-y-8 max-w-5xl mx-auto">
+            <div className="flex flex-col gap-8">
+              {visibleVillas.map((villa, i) => (
+                <Reveal key={villa.id} delay={Math.min(i, 5) * 60}>
+                  <VillaCard villa={villa} />
+                </Reveal>
+              ))}
+            </div>
+
+            {filtered.length > visibleLimit && (
+              <div className="flex justify-center pt-6">
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((prev) => prev + 6)}
+                  className="gradient-lagoon inline-flex items-center gap-2.5 rounded-full px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-lift transition-all duration-300 hover:scale-105 cursor-pointer"
+                >
+                  Afficher plus de villas ({filtered.length - visibleLimit} restante{filtered.length - visibleLimit > 1 ? "s" : ""})
+                  <i className="fa-solid fa-chevron-down text-xs" aria-hidden="true" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

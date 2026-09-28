@@ -58,6 +58,8 @@ export function sanitizeVillaImages(rawImages: unknown): string[] {
 export const villasQuery = (opts?: { onlyActive?: boolean }) =>
   queryOptions({
     queryKey: ["villas", opts?.onlyActive ?? true],
+    staleTime: 1000 * 60 * 5, // 5 minutes cache staleTime
+    gcTime: 1000 * 60 * 30, // 30 minutes garbage collection
     queryFn: async (): Promise<Villa[]> => {
       let q = supabase.from("villas").select("*").order("created_at", { ascending: true });
       if (opts?.onlyActive !== false) q = q.eq("is_active", true);
@@ -73,6 +75,8 @@ export const villasQuery = (opts?: { onlyActive?: boolean }) =>
 export const villaQuery = (id: string) =>
   queryOptions({
     queryKey: ["villa", id],
+    staleTime: 1000 * 60 * 5, // 5 minutes cache staleTime
+    gcTime: 1000 * 60 * 30, // 30 minutes garbage collection
     queryFn: async (): Promise<Villa | null> => {
       const { data, error } = await supabase.from("villas").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
