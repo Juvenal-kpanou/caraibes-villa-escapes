@@ -162,31 +162,47 @@ export const createReservation = createServerFn({ method: "POST" })
 
     // 2. Direct table insert fallback
     if (!created) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const firstAttempt = await (db.from("reservations") as any)
-        .insert(insertPayload)
-        .select(RESERVATION_FIELDS)
-        .single();
-      created = firstAttempt.data;
-      insertError = firstAttempt.error;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const firstAttempt = await (db.from("reservations") as any)
+          .insert(insertPayload)
+          .select(RESERVATION_FIELDS)
+          .maybeSingle();
+        if (firstAttempt?.data) {
+          created = firstAttempt.data;
+          insertError = null;
+        } else if (firstAttempt?.error) {
+          insertError = firstAttempt.error;
+        }
+      } catch (e) {
+        insertError = e;
+      }
     }
 
     // 3. Fallback si la colonne guest_address n'existe pas encore dans la base Supabase
     if (
       !created &&
       insertError &&
-      (insertError.message?.includes("guest_address") ||
-        insertError.message?.includes("schema cache"))
+      (String(insertError?.message || "").includes("guest_address") ||
+        String(insertError?.message || "").includes("schema cache"))
     ) {
-      delete insertPayload["guest_address"];
-      const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const retry = await (db.from("reservations") as any)
-        .insert(insertPayload)
-        .select(safeFields)
-        .single();
-      created = retry.data;
-      insertError = retry.error;
+      try {
+        delete insertPayload["guest_address"];
+        const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const retry = await (db.from("reservations") as any)
+          .insert(insertPayload)
+          .select(safeFields)
+          .maybeSingle();
+        if (retry?.data) {
+          created = retry.data;
+          insertError = null;
+        } else if (retry?.error) {
+          insertError = retry.error;
+        }
+      } catch (e) {
+        insertError = e;
+      }
     }
 
     // 4. Tentative automatique de secours avec le client public Supabase (Lovable Cloud)
@@ -197,11 +213,11 @@ export const createReservation = createServerFn({ method: "POST" })
         const anonRetry = await (supabase.from("reservations") as any)
           .insert(insertPayload)
           .select(RESERVATION_FIELDS)
-          .single();
-        if (anonRetry.data) {
+          .maybeSingle();
+        if (anonRetry?.data) {
           created = anonRetry.data;
           insertError = null;
-        } else if (anonRetry.error) {
+        } else if (anonRetry?.error) {
           // Si guest_address manque sur l'ancienne table
           delete insertPayload["guest_address"];
           const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
@@ -209,8 +225,8 @@ export const createReservation = createServerFn({ method: "POST" })
           const safeAnonRetry = await (supabase.from("reservations") as any)
             .insert(insertPayload)
             .select(safeFields)
-            .single();
-          if (safeAnonRetry.data) {
+            .maybeSingle();
+          if (safeAnonRetry?.data) {
             created = safeAnonRetry.data;
             insertError = null;
           }
