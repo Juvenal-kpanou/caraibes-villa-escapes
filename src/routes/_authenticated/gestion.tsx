@@ -216,7 +216,7 @@ function ReservationsPanel() {
                 </p>
                 {r.status === "pending" && (
                   <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                    En attente de virement
+                    En attente de vérification
                   </span>
                 )}
               </div>
