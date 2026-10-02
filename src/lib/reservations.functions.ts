@@ -300,16 +300,71 @@ export const getReservationByReference = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const reference = data.reference.toUpperCase();
-    const email = data.email.toLowerCase();
+    const { supabase } = await import("@/integrations/supabase/client");
+    const reference = data.reference.toUpperCase().trim();
+    const email = data.email.toLowerCase().trim();
 
-    const { data: reservation, error } = await supabaseAdmin
-      .from("reservations")
-      .select(RESERVATION_FIELDS)
-      .eq("reference", reference)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!reservation) return { reservation: null, bank: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let reservation: any = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let bank: any = null;
+
+    // 1. Attempt using supabaseAdmin
+    try {
+      const { data: res, error } = await supabaseAdmin
+        .from("reservations")
+        .select(RESERVATION_FIELDS)
+        .eq("reference", reference)
+        .maybeSingle();
+      if (res && !error) {
+        reservation = res;
+      } else if (
+        error &&
+        (error.message?.includes("guest_address") || error.message?.includes("schema cache"))
+      ) {
+        const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
+        const { data: safeRes } = await supabaseAdmin
+          .from("reservations")
+          .select(safeFields)
+          .eq("reference", reference)
+          .maybeSingle();
+        if (safeRes) reservation = safeRes;
+      }
+    } catch (e) {
+      console.warn("supabaseAdmin reservation lookup failed:", e);
+    }
+
+    // 2. Fallback using public supabase client
+    if (!reservation) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: res, error } = await (supabase.from("reservations") as any)
+          .select(RESERVATION_FIELDS)
+          .eq("reference", reference)
+          .maybeSingle();
+        if (res && !error) {
+          reservation = res;
+        } else if (
+          error &&
+          (error.message?.includes("guest_address") || error.message?.includes("schema cache"))
+        ) {
+          const safeFields = RESERVATION_FIELDS.replace("guest_address, ", "");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: safeRes } = await (supabase.from("reservations") as any)
+            .select(safeFields)
+            .eq("reference", reference)
+            .maybeSingle();
+          if (safeRes) reservation = safeRes;
+        }
+      } catch (e) {
+        console.warn("Public client reservation lookup failed:", e);
+      }
+    }
+
+    if (!reservation) {
+      return { reservation: null, bank: null };
+    }
+
     if (
       String(reservation.guest_email ?? "")
         .trim()
@@ -318,13 +373,18 @@ export const getReservationByReference = createServerFn({ method: "POST" })
       return { reservation: null, bank: null };
     }
 
-    const { data: bank } = await supabaseAdmin
-      .from("bank_settings")
-      .select("iban, bic, bank_name, account_holder")
-      .limit(1)
-      .maybeSingle();
+    try {
+      const { data: bankData } = await supabaseAdmin
+        .from("bank_settings")
+        .select("iban, bic, bank_name, account_holder")
+        .limit(1)
+        .maybeSingle();
+      bank = bankData ?? null;
+    } catch (e) {
+      console.warn("Bank settings lookup failed:", e);
+    }
 
-    return { reservation, bank: bank ?? null };
+    return { reservation, bank };
   });
 
 /** Client : demande d'annulation + remboursement, gratuite. */
