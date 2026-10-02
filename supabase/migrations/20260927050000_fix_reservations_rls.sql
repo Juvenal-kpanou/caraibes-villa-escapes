@@ -3,23 +3,45 @@
 -- 1. Ensure guest_address column exists
 ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS guest_address text;
 
--- 2. Ensure RLS policies allow public/anon reservation insertion and selection
+-- 2. Ensure RLS policies allow public/anon reservation insertion while restricting read/update/delete
 ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
 
+-- 2a. INSERT Policy: Allow anonymous visitors (role anon and public) to submit reservations
 DROP POLICY IF EXISTS "public_can_insert_reservations" ON public.reservations;
+DROP POLICY IF EXISTS "allow_anon_insert_reservations" ON public.reservations;
 CREATE POLICY "public_can_insert_reservations"
 ON public.reservations
 FOR INSERT
-TO public
+TO anon, public
 WITH CHECK (true);
 
+-- 2b. SELECT Policy: Restrict reading reservations to authenticated managers/admins only
 DROP POLICY IF EXISTS "public_can_select_reservations" ON public.reservations;
-CREATE POLICY "public_can_select_reservations"
+DROP POLICY IF EXISTS "admins_select_reservations" ON public.reservations;
+CREATE POLICY "admins_select_reservations"
 ON public.reservations
 FOR SELECT
-TO public
+TO authenticated
 USING (true);
 
+-- 2c. UPDATE Policy: Restrict updating reservations to authenticated managers/admins only
+DROP POLICY IF EXISTS "admins_update_reservations" ON public.reservations;
+CREATE POLICY "admins_update_reservations"
+ON public.reservations
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+-- 2d. DELETE Policy: Restrict deleting reservations to authenticated managers/admins only
+DROP POLICY IF EXISTS "admins_delete_reservations" ON public.reservations;
+CREATE POLICY "admins_delete_reservations"
+ON public.reservations
+FOR DELETE
+TO authenticated
+USING (true);
+
+-- 2e. Master Policy for authenticated admins
 DROP POLICY IF EXISTS "admins_all_reservations" ON public.reservations;
 CREATE POLICY "admins_all_reservations"
 ON public.reservations
